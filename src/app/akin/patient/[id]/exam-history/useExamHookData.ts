@@ -1,0 +1,79 @@
+import { _axios } from "@/Api/axios.config";
+import { useEffect, useState } from "react";
+
+export interface Exam {
+  data: {
+    id: number;
+    id_agendamento: number;
+    id_tipo_Exame: number;
+    status_pagamento: string;
+    data_agendamento: string;
+    hora_agendamento: string;
+    status: string;
+    exame: {
+      id: number;
+      nome: string;
+      descricao: string;
+      preco: number;
+      status: string;
+    };
+    _count: {
+      Protocolo_Exame: number;
+      Utilizacao_Material: number;
+    };
+    Tipo_Exame: {
+      id: number,
+      nome: string,
+      descricao: string,
+      preco: number,
+      status: string,
+      criado_aos: Date,
+      atualizado_aos: Date
+    },
+    Agendamento: {
+      id: number;
+      id_paciente: string;
+      id_tecnico_alocado: string | null;
+      id_unidade_de_saude: number;
+      status: string;
+      quantia_pagamento: number;
+      data_pagamento: string | null;
+      data_formatada: string;
+    };
+  }[]
+}
+export interface Appointment {
+  id: number;
+  id_paciente: string;
+  id_tecnico_alocado: string | null;
+  id_unidade_de_saude: number;
+  data_agendamento: string;
+  hora_agendamento: string;
+  status: string;
+  status_pagamento: string;
+  quantia_pagamento: number;
+  data_pagamento: string | null;
+  data_formatada: string;
+}
+
+export function useExamHookData(id: string | string[]) {
+  const [data, setData] = useState<Exam>();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await _axios.get<Exam>(`/exams/history/${id}`);
+        setData(response.data);
+      } catch (err: any) {
+        setError(err.message || "Erro ao carregar os dados.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (id) fetchData();
+  }, [id]);
+  return { data, loading, error };
+}

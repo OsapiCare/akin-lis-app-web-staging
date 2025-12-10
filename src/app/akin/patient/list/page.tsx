@@ -1,0 +1,37 @@
+"use client"
+import { View } from "@/components/view";
+import PatientDisplay from "../patient-display";
+import { useQuery } from "@tanstack/react-query";
+import { PatientDisplaySkeleton } from "../components/patientDisplaySkeleton";
+import { labTechniciansRoutes } from "@/Api/Routes/lab-technicians/index.routes";
+import { patientRoutes } from "@/Api/Routes/patients";
+import { getAllDataInCookies } from "@/utils/get-data-in-cookies";
+
+
+export default function Patient() {
+  const userRole = getAllDataInCookies().userRole;
+  const isLabTechnician = userRole === "TECNICO";
+
+  const patientsQuery = useQuery({
+    queryKey: ["patient-data"],
+    queryFn: async () => {
+      if (isLabTechnician) {
+        return await labTechniciansRoutes.getPacientsAssocietedToLabTechnician(getAllDataInCookies().userdata.id);
+      } else {
+        return await patientRoutes.getAllPacients();
+      }
+    },
+  });
+
+  if (patientsQuery.isError) return <p>{patientsQuery.error.message}</p>
+  if (patientsQuery.isLoading) return <PatientDisplaySkeleton />
+
+  return (
+    <View.Vertical className="h-screen">
+      <View.Scroll>
+        <p></p>
+        <PatientDisplay patients={patientsQuery.data} />
+      </View.Scroll>
+    </View.Vertical>
+  );
+}
