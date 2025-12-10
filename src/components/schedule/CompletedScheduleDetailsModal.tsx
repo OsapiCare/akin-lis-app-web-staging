@@ -780,11 +780,11 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
                           </div>
 
                           {/* Input manual para data/hora (fallback) */}
-                          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                          <div className="flex gap-4">
                             <div>
                               <Label>Data (manual)</Label>
                               <Input
-                              className="w-44"
+                              className=""
                                 type="date"
                                 value={editedExam.data_agendamento}
                                 onChange={(e) => handleExamFieldChange("data_agendamento", e.target.value)}
@@ -793,6 +793,7 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
                             <div>
                               <Label>Hora (manual)</Label>
                               <Input
+                              className="w-44"
                                 type="time"
                                 value={editedExam.hora_agendamento}
                                 onChange={(e) => handleExamFieldChange("hora_agendamento", e.target.value)}
