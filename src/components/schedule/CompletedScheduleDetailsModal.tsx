@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle, XCircle, AlertCircle, Edit3, Mail, Calendar, Users, Save, X } from "lucide-react";
+import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle, XCircle, AlertCircle, Edit3, Mail, Calendar, Users, Save, X, X as CloseIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { _axios } from "@/Api/axios.config";
@@ -224,11 +224,17 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-        <DialogHeader>
+        <DialogHeader className="relative">
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
             Detalhes do Agendamento #{schedule.id}
           </DialogTitle>
+          
+          {/* Botão de fechar no canto superior direito */}
+          <DialogClose className="absolute right-4 -top-2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+            <CloseIcon className="h-4 w-4" />
+            <span className="sr-only">Fechar</span>
+          </DialogClose>
         </DialogHeader>
 
         <ScrollArea className="max-h-[calc(90vh-120px)] pr-4">
@@ -480,6 +486,13 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
                 ))}
               </CardContent>
             </Card>
+            
+            {/* Botão de fechar na parte inferior (opcional) */}
+            <div className="flex justify-end pt-4 border-t">
+              <Button variant="outline" onClick={onClose}>
+                Fechar
+              </Button>
+            </div>
           </div>
         </ScrollArea>
       </DialogContent>
