@@ -7,6 +7,10 @@ class ExamRoute {
     const response = await _axios.get(`/exams`);
     return response.data;
   }
+  async getExamTypes() {
+    const response = await _axios.get(`/exam-types`);
+    return response.data;
+  }
 
   async editExam(examId: number, updates: EditableExam) {
     const response = await _axios.patch(`/exams/${examId}`, updates);
@@ -17,6 +21,7 @@ class ExamRoute {
     const response = await _axios.get('/exams/pending');
     return response.data;
   }
+
 }
 
 export const examRoutes = new ExamRoute();
