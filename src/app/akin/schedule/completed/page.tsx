@@ -17,7 +17,13 @@ import {
   FileText,
   TrendingUp,
   MoreHorizontal,
-  Eye
+  Eye,
+  User,
+  CreditCard,
+  DollarSign,
+  CalendarDays,
+  Clock,
+  Users
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -38,6 +44,46 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+
+// Helper para obter status dos exames
+const getExamStatuses = (exams: any[], maxVisible = 2) => {
+  if (!exams || exams.length === 0) return [];
+  
+  // Filtra apenas exames ativos (não concluídos)
+  const activeExams = exams.filter(exam => exam.status !== "CONCLUIDO");
+  
+  if (activeExams.length === 0) {
+    return [{ label: "Concluído", color: "green" }];
+  }
+  
+  return activeExams.slice(0, maxVisible).map(exam => {
+    switch(exam.status) {
+      case "PENDENTE": return { label: "Pendente", color: "yellow" };
+      case "EM_ANDAMENTO": return { label: "Em Andamento", color: "blue" };
+      case "POR_REAGENDAR": return { label: "Por Reagendar", color: "orange" };
+      case "CANCELADO": return { label: "Cancelado", color: "red" };
+      default: return { label: exam.status, color: "gray" };
+    }
+  });
+};
+
+// Helper para verificar status de pagamento do bloco
+const getPaymentStatus = (exams: any[]) => {
+  if (!exams || exams.length === 0) return { status: "N/A", color: "gray" };
+  
+  // Se pelo menos um exame está pendente, o bloco está pendente (regra única de fatura)
+  const hasPendingPayment = exams.some(exam => exam.status_pagamento === "PENDENTE");
+  
+  return hasPendingPayment 
+    ? { status: "Pendente", color: "yellow" }
+    : { status: "Pago", color: "green" };
+};
+
+// Helper para calcular valor total do bloco
+const calculateTotalValue = (exams: any[]) => {
+  if (!exams || exams.length === 0) return 0;
+  return exams.reduce((sum, exam) => sum + (exam.Tipo_Exame?.preco || 0), 0);
+};
 
 export default function CompletedSchedulesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -107,7 +153,7 @@ export default function CompletedSchedulesPage() {
   }
 
   return (
-    <div className="container mx-auto px-6 py-8 space-y-6">
+    <div className="container mx-auto px-4 py-8 space-y-6">
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -136,11 +182,11 @@ export default function CompletedSchedulesPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
-            <CheckCircle className="w-6 h-6 text-green-600" />
+            <CheckCircle className="w-5 h-5 text-green-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold text-gray-900">
             {isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalSchedules}
@@ -150,7 +196,7 @@ export default function CompletedSchedulesPage() {
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Total de Exames</CardTitle>
-            <FileText className="w-6 h-6 text-purple-600" />
+            <FileText className="w-5 h-5 text-purple-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold text-gray-900">
             {isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalExams}
@@ -160,7 +206,7 @@ export default function CompletedSchedulesPage() {
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <TrendingUp className="w-6 h-6 text-blue-600" />
+            <TrendingUp className="w-5 h-5 text-blue-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold">
             {isLoading ? (
@@ -178,7 +224,7 @@ export default function CompletedSchedulesPage() {
         <Card>
           <CardHeader className="flex items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Progresso dos Exames</CardTitle>
-            <CheckCircle className="w-6 h-6 text-orange-600" />
+            <CheckCircle className="w-5 h-5 text-orange-600" />
           </CardHeader>
           <CardContent className="text-2xl font-bold">
             {isLoading ? (
@@ -257,123 +303,353 @@ export default function CompletedSchedulesPage() {
             </TabsContent>
 
             <TabsContent value="list">
-              <div className="overflow-x-auto mt-6">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead>
-                    <tr>
-                      <th className="w-12">
-                        <Checkbox
-                          checked={selectedSchedules.length === filteredSchedules.length}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </th>
-                      <th>Paciente</th>
-                      <th>Exames</th>
-                      <th>Status</th>
-                      <th>Pagamento</th>
-                      <th>Valor Total</th>
-                      <th>Técnico</th>
-                      <th className="w-16">Ações</th>
-                    </tr>
-                  </thead>
+              <div className="border px-2 mx-8 rounded-lg overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr className="w-full">
+                        {/* <th className="w-12 px-4 py-3">
+                          <Checkbox
+                            checked={selectedSchedules.length === filteredSchedules.length}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </th> */}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            Paciente
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <CalendarDays className="w-3 h-3" />
+                            Data de Criação
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            Status dos Exames
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            Pagamento
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            Valor a Pagar
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            Chefe Alocado
+                          </div>
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Ações
+                        </th>
+                      </tr>
+                    </thead>
 
-                  <tbody>
-                    {filteredSchedules.map((schedule) => {
-                      const totalValue =
-                        schedule.Exame?.reduce(
-                          (sum, e) => sum + (e.Tipo_Exame?.preco || 0),
-                          0
-                        ) || 0;
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredSchedules.map((schedule) => {
+                        // 1. Data de criação do agendamento (coluna vermelha)
+                        const creationDate = schedule.criado_aos 
+                          ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR })
+                          : "N/A";
+                        
+                        // 2. Status individuais dos exames (coluna amarela)
+                        const examStatuses = getExamStatuses(schedule.Exame || []);
+                        const hasMoreStatuses = (schedule.Exame?.filter(e => e.status !== "CONCLUIDO").length || 0) > 2;
+                        
+                        // 3. Status de pagamento do bloco (coluna azul)
+                        const paymentStatus = getPaymentStatus(schedule.Exame || []);
+                        
+                        // 4. Valor total do bloco (coluna verde)
+                        const totalValue = calculateTotalValue(schedule.Exame || []);
+                        
+                        // 5. Chefe de laboratório alocado (coluna rosa)
+                        const hasAllocatedChief = !!schedule.id_chefe_alocado;
 
-                      const completedExams =
-                        schedule.Exame?.filter((e) => e.status === "CONCLUIDO").length || 0;
+                        return (
+                          <tr key={schedule.id} className="hover:bg-gray-50 transition-colors">
+                            {/* <td className="px-4 py-4 whitespace-nowrap">
+                              <Checkbox
+                                checked={selectedSchedules.includes(schedule.id)}
+                                onCheckedChange={(checked) =>
+                                  handleSelectSchedule(schedule.id, checked as boolean)
+                                }
+                              />
+                            </td> */}
 
-                      const totalExams = schedule.Exame?.length || 0;
+                            {/* Paciente */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                                  <span className="text-xs font-medium text-blue-600">
+                                    {(schedule.Paciente?.nome_completo || "")
+                                      .split(" ")
+                                      .map((n: string) => n[0])
+                                      .join("")
+                                      .toUpperCase()
+                                      .slice(0, 2)}
+                                  </span>
+                                </div>
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {schedule.Paciente?.nome_completo || "N/A"}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    {schedule.Paciente?.numero_identificacao || "Sem BI"}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
 
-                      const paidExams =
-                        schedule.Exame?.filter((e) => e.status_pagamento === "PAGO").length || 0;
+                            {/* Data de Criação (Vermelha) */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="text-sm text-gray-900 font-medium">
+                                {creationDate}
+                              </div>
+                              {schedule.criado_aos && (
+                                <div className="text-xs text-gray-500">
+                                  {format(new Date(schedule.criado_aos), "HH:mm", { locale: ptBR })}
+                                </div>
+                              )}
+                            </td>
 
-                      const hasAllocatedTechnician =
-                        schedule.Exame?.some((e) => e.id_tecnico_alocado);
+                            {/* Status dos Exames (Amarela) */}
+                            <td className="px-4 py-4">
+                              <div className="flex flex-wrap gap-1">
+                                {examStatuses.map((status, index) => (
+                                  <Badge
+                                    key={index}
+                                    variant="outline"
+                                    className={`text-xs px-2 py-0.5 border-${status.color}-200 bg-${status.color}-50 text-${status.color}-700`}
+                                  >
+                                    {status.label}
+                                  </Badge>
+                                ))}
+                                {hasMoreStatuses && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs px-2 py-0.5 border-gray-200 bg-gray-50 text-gray-600"
+                                  >
+                                    +Ver mais
+                                  </Badge>
+                                )}
+                                {examStatuses.length === 0 && (
+                                  <span className="text-xs text-gray-500">Nenhum exame ativo</span>
+                                )}
+                              </div>
+                            </td>
 
-                      return (
-                        <tr key={schedule.id}>
-                          <td>
-                            <Checkbox
-                              checked={selectedSchedules.includes(schedule.id)}
-                              onCheckedChange={(checked) =>
-                                handleSelectSchedule(schedule.id, checked as boolean)
-                              }
-                            />
-                          </td>
-
-                          <td>{schedule.Paciente?.nome_completo}</td>
-
-                          <td>
-                            {schedule.Exame?.slice(0, 3).map((exam, i) => (
-                              <Badge key={i} variant="outline" className="mr-1 text-xs">
-                                {exam.Tipo_Exame?.nome}
+                            {/* Status de Pagamento (Azul) */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs px-3 py-1 border-${paymentStatus.color}-200 bg-${paymentStatus.color}-50 text-${paymentStatus.color}-700`}
+                              >
+                                {paymentStatus.status}
                               </Badge>
-                            ))}
-                            {totalExams > 3 && (
-                              <span className="text-blue-600 text-xs">
-                                +{totalExams - 3}
-                              </span>
-                            )}
-                          </td>
+                            </td>
 
-                          <td>
-                            {completedExams}/{totalExams} exames realizados
-                          </td>
+                            {/* Valor a Pagar (Verde) */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <div className="text-sm font-semibold text-green-700">
+                                {new Intl.NumberFormat("pt-AO", {
+                                  style: "currency",
+                                  currency: "AOA"
+                                }).format(totalValue)}
+                              </div>
+                            </td>
 
-                          <td>
-                            {paidExams}/{totalExams} pagos
-                          </td>
+                            {/* Chefe Alocado (Rosa) */}
+                            <td className="px-4 py-4 whitespace-nowrap">
+                              <Badge
+                                variant="outline"
+                                className={`text-xs px-3 py-1 ${hasAllocatedChief 
+                                  ? "border-pink-200 bg-pink-50 text-pink-700" 
+                                  : "border-gray-200 bg-gray-50 text-gray-600"}`}
+                              >
+                                {hasAllocatedChief ? "Alocado" : "Não alocado"}
+                              </Badge>
+                            </td>
 
-                          <td>
-                            {new Intl.NumberFormat("pt-AO", {
-                              style: "currency",
-                              currency: "AOA"
-                            }).format(totalValue)}
-                          </td>
+                            {/* Ações */}
+                            <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
 
-                          <td>
-                            <Badge
-                              variant="outline"
-                              className={`text-xs ${
-                                hasAllocatedTechnician
-                                  ? "bg-green-100 text-green-700"
-                                  : "bg-gray-100 text-gray-600"
-                              }`}
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuItem 
+                                    onClick={() => handleViewDetails(schedule)}
+                                    className="cursor-pointer"
+                                  >
+                                    <Eye className="mr-2 h-4 w-4" /> 
+                                    Ver Detalhes
+                                  </DropdownMenuItem>
+
+                                  <DropdownMenuItem 
+                                    onClick={() => handleViewReport(schedule)}
+                                    className="cursor-pointer"
+                                  >
+                                    <FileText className="mr-2 h-4 w-4" /> 
+                                    Gerar Relatório
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Responsive Mobile View */}
+              <div className="block md:hidden mt-4">
+                <div className="space-y-4">
+                  {filteredSchedules.map((schedule) => {
+                    const examStatuses = getExamStatuses(schedule.Exame || []);
+                    const paymentStatus = getPaymentStatus(schedule.Exame || []);
+                    const totalValue = calculateTotalValue(schedule.Exame || []);
+                    const hasAllocatedChief = !!schedule.id_chefe_alocado;
+                    const creationDate = schedule.criado_aos 
+                      ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR })
+                      : "N/A";
+
+                    return (
+                      <Card key={schedule.id} className="p-4">
+                        <div className="space-y-3">
+                          {/* Header */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {(schedule.Paciente?.nome_completo || "")
+                                    .split(" ")
+                                    .map((n: string) => n[0])
+                                    .join("")
+                                    .toUpperCase()
+                                    .slice(0, 2)}
+                                </span>
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-gray-900">
+                                  {schedule.Paciente?.nome_completo}
+                                </h4>
+                                <p className="text-sm text-gray-500">
+                                  {schedule.Paciente?.numero_identificacao || "Sem BI"}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewDetails(schedule)}
                             >
-                              {hasAllocatedTechnician ? "Alocado" : "Não alocado"}
-                            </Badge>
-                          </td>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </div>
 
-                          <td>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-6 w-6 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                          {/* Informações */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <Label className="text-xs text-gray-500">Data de Criação</Label>
+                              <p className="text-sm font-medium">{creationDate}</p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Pagamento</Label>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs mt-1 ${
+                                  paymentStatus.status === "Pago" 
+                                    ? "border-green-200 bg-green-50 text-green-700" 
+                                    : "border-yellow-200 bg-yellow-50 text-yellow-700"
+                                }`}
+                              >
+                                {paymentStatus.status}
+                              </Badge>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Valor</Label>
+                              <p className="text-sm font-semibold text-green-700">
+                                {new Intl.NumberFormat("pt-AO", {
+                                  style: "currency",
+                                  currency: "AOA"
+                                }).format(totalValue)}
+                              </p>
+                            </div>
+                            <div>
+                              <Label className="text-xs text-gray-500">Chefe</Label>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs mt-1 ${
+                                  hasAllocatedChief 
+                                    ? "border-pink-200 bg-pink-50 text-pink-700" 
+                                    : "border-gray-200 bg-gray-50 text-gray-600"
+                                }`}
+                              >
+                                {hasAllocatedChief ? "Alocado" : "Não alocado"}
+                              </Badge>
+                            </div>
+                          </div>
 
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewDetails(schedule)}>
-                                  <Eye className="mr-2 h-4 w-4" /> Ver Detalhes
-                                </DropdownMenuItem>
+                          {/* Status dos Exames */}
+                          <div>
+                            <Label className="text-xs text-gray-500 mb-2">Status dos Exames</Label>
+                            <div className="flex flex-wrap gap-1">
+                              {examStatuses.map((status, index) => (
+                                <Badge
+                                  key={index}
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5"
+                                >
+                                  {status.label}
+                                </Badge>
+                              ))}
+                              {(schedule.Exame?.filter(e => e.status !== "CONCLUIDO").length || 0) > 2 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs px-2 py-0.5"
+                                >
+                                  +Ver mais
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
 
-                                <DropdownMenuItem onClick={() => handleViewReport(schedule)}>
-                                  <FileText className="mr-2 h-4 w-4" /> Gerar Relatório
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                          {/* Botão de Ações */}
+                          <div className="flex justify-end pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewDetails(schedule)}
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver Detalhes
+                            </Button>
+                          </div>
+                        </div>
+                      </Card>
+                    );
+                  })}
+                </div>
               </div>
             </TabsContent>
           </>
@@ -388,3 +664,10 @@ export default function CompletedSchedulesPage() {
     </div>
   );
 }
+
+// Componente Label para mobile view
+const Label = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`text-xs font-medium text-gray-600 ${className}`}>
+    {children}
+  </div>
+);
