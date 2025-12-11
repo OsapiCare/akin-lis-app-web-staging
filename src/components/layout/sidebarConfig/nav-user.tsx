@@ -46,7 +46,7 @@ export function NavUser({}: {}) {
                   <AvatarFallback className="rounded-lg">{loggedUser?.data?.nome.slice(0, 2).charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{loggedUser?.data.nome}</span>
+                  <span className="truncate font-semibold">{loggedUser?.data?.nome}</span>
                   <span className="truncate text-xs">{loggedUser?.data?.email}</span>
                 </div>
               </Link>
