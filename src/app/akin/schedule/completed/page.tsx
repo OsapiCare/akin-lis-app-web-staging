@@ -7,24 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Grid3X3,
-  List,
-  RefreshCw,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  FileText,
-  TrendingUp,
-  MoreHorizontal,
-  Eye,
-  User,
-  CreditCard,
-  DollarSign,
-  CalendarDays,
-  Clock,
-  Users
-} from "lucide-react";
+import { Grid3X3, List, RefreshCw, Calendar, AlertTriangle, CheckCircle, FileText, TrendingUp, MoreHorizontal, Eye, User, CreditCard, DollarSign, CalendarDays, Clock, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -38,31 +21,31 @@ import { useCompletedScheduleFilters } from "@/hooks/useCompletedScheduleFilters
 
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Helper para obter status dos exames
 const getExamStatuses = (exams: any[], maxVisible = 2) => {
   if (!exams || exams.length === 0) return [];
-  
+
   // Filtra apenas exames ativos (não concluídos)
-  const activeExams = exams.filter(exam => exam.status !== "CONCLUIDO");
-  
+  const activeExams = exams.filter((exam) => exam.status !== "CONCLUIDO");
+
   if (activeExams.length === 0) {
     return [{ label: "Concluído", color: "green" }];
   }
-  
-  return activeExams.slice(0, maxVisible).map(exam => {
-    switch(exam.status) {
-      case "PENDENTE": return { label: "Pendente", color: "yellow" };
-      case "EM_ANDAMENTO": return { label: "Em Andamento", color: "blue" };
-      case "POR_REAGENDAR": return { label: "Por Reagendar", color: "orange" };
-      case "CANCELADO": return { label: "Cancelado", color: "red" };
-      default: return { label: exam.status, color: "gray" };
+
+  return activeExams.slice(0, maxVisible).map((exam) => {
+    switch (exam.status) {
+      case "PENDENTE":
+        return { label: "Pendente", color: "yellow" };
+      case "EM_ANDAMENTO":
+        return { label: "Em Andamento", color: "blue" };
+      case "POR_REAGENDAR":
+        return { label: "Por Reagendar", color: "orange" };
+      case "CANCELADO":
+        return { label: "Cancelado", color: "red" };
+      default:
+        return { label: exam.status, color: "gray" };
     }
   });
 };
@@ -70,13 +53,11 @@ const getExamStatuses = (exams: any[], maxVisible = 2) => {
 // Helper para verificar status de pagamento do bloco
 const getPaymentStatus = (exams: any[]) => {
   if (!exams || exams.length === 0) return { status: "N/A", color: "gray" };
-  
+
   // Se pelo menos um exame está pendente, o bloco está pendente (regra única de fatura)
-  const hasPendingPayment = exams.some(exam => exam.status_pagamento === "PENDENTE");
-  
-  return hasPendingPayment 
-    ? { status: "Pendente", color: "yellow" }
-    : { status: "Pago", color: "green" };
+  const hasPendingPayment = exams.some((exam) => exam.status_pagamento === "PENDENTE");
+
+  return hasPendingPayment ? { status: "Pendente", color: "yellow" } : { status: "Pago", color: "green" };
 };
 
 // Helper para calcular valor total do bloco
@@ -92,8 +73,7 @@ export default function CompletedSchedulesPage() {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedSchedules, setSelectedSchedules] = useState<number[]>([]);
 
-  const { schedules, statistics, isLoading, isError, refetch, isRefetching } =
-    useCompletedSchedules();
+  const { schedules, statistics, isLoading, isError, refetch, isRefetching } = useCompletedSchedules();
 
   const uniqueSchedules = useMemo(() => {
     const map = new Map<number, CompletedScheduleType>();
@@ -101,13 +81,7 @@ export default function CompletedSchedulesPage() {
     return Array.from(map.values());
   }, [schedules]);
 
-  const {
-    filteredSchedules,
-    filters,
-    handleSearch,
-    handleFilterChange,
-    clearFilters
-  } = useCompletedScheduleFilters(uniqueSchedules);
+  const { filteredSchedules, filters, handleSearch, handleFilterChange, clearFilters } = useCompletedScheduleFilters(uniqueSchedules);
 
   const totalCount = statistics?.totalSchedules ?? 0;
   const filteredCount = filteredSchedules.length;
@@ -117,9 +91,7 @@ export default function CompletedSchedulesPage() {
   };
 
   const handleSelectSchedule = (scheduleId: number, checked: boolean) => {
-    setSelectedSchedules((prev) =>
-      checked ? [...prev, scheduleId] : prev.filter((id) => id !== scheduleId)
-    );
+    setSelectedSchedules((prev) => (checked ? [...prev, scheduleId] : prev.filter((id) => id !== scheduleId)));
   };
 
   const handleViewDetails = (schedule: CompletedScheduleType) => {
@@ -158,9 +130,7 @@ export default function CompletedSchedulesPage() {
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Gestão de Agendamentos</h1>
-          <p className="text-gray-600 mt-1">
-            Visualize e gerencie todos os agendamentos pendentes e em andamento.
-          </p>
+          <p className="text-gray-600 mt-1">Visualize e gerencie todos os agendamentos pendentes e em andamento.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -188,9 +158,7 @@ export default function CompletedSchedulesPage() {
             <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
             <CheckCircle className="w-5 h-5 text-green-600" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-gray-900">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalSchedules}
-          </CardContent>
+          <CardContent className="text-2xl font-bold text-gray-900">{isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalSchedules}</CardContent>
         </Card>
 
         <Card>
@@ -198,9 +166,7 @@ export default function CompletedSchedulesPage() {
             <CardTitle className="text-sm font-medium">Total de Exames</CardTitle>
             <FileText className="w-5 h-5 text-purple-600" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold text-gray-900">
-            {isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalExams}
-          </CardContent>
+          <CardContent className="text-2xl font-bold text-gray-900">{isLoading ? <Skeleton className="h-8 w-16" /> : statistics.totalExams}</CardContent>
         </Card>
 
         <Card>
@@ -215,7 +181,7 @@ export default function CompletedSchedulesPage() {
               new Intl.NumberFormat("pt-AO", {
                 style: "currency",
                 currency: "AOA",
-                notation: "compact"
+                notation: "compact",
               }).format(statistics.totalRevenue)
             )}
           </CardContent>
@@ -226,28 +192,13 @@ export default function CompletedSchedulesPage() {
             <CardTitle className="text-sm font-medium">Progresso dos Exames</CardTitle>
             <CheckCircle className="w-5 h-5 text-orange-600" />
           </CardHeader>
-          <CardContent className="text-2xl font-bold">
-            {isLoading ? (
-              <Skeleton className="h-8 w-16" />
-            ) : (
-              `${statistics.totalExams > 0
-                ? ((statistics.completedExams / statistics.totalExams) * 100).toFixed(1)
-                : 0}%`
-            )}
-          </CardContent>
+          <CardContent className="text-2xl font-bold">{isLoading ? <Skeleton className="h-8 w-16" /> : `${statistics.totalExams > 0 ? ((statistics.completedExams / statistics.totalExams) * 100).toFixed(1) : 0}%`}</CardContent>
         </Card>
       </div>
 
       {showStats && <CompletedScheduleStats statistics={statistics} />}
 
-      <CompletedScheduleFilters
-        onSearch={handleSearch}
-        onFilterChange={handleFilterChange}
-        onClearFilters={clearFilters}
-        filters={filters}
-        totalSchedules={totalCount}
-        filteredCount={filteredCount}
-      />
+      <CompletedScheduleFilters onSearch={handleSearch} onFilterChange={handleFilterChange} onClearFilters={clearFilters} filters={filters} totalSchedules={totalCount} filteredCount={filteredCount} />
 
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "grid" | "list")}>
         <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
@@ -276,11 +227,7 @@ export default function CompletedSchedulesPage() {
           <Card className="p-12 text-center">
             <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold">Nenhum agendamento encontrado</h3>
-            <p className="text-gray-600 mt-2">
-              {statistics.totalSchedules === 0
-                ? "Não há agendamentos disponíveis."
-                : "Ajuste os filtros ou tente novamente."}
-            </p>
+            <p className="text-gray-600 mt-2">{statistics.totalSchedules === 0 ? "Não há agendamentos disponíveis." : "Ajuste os filtros ou tente novamente."}</p>
             {filters.searchQuery && (
               <Button variant="outline" className="mt-4" onClick={() => handleSearch("")}>
                 Limpar busca
@@ -292,12 +239,7 @@ export default function CompletedSchedulesPage() {
             <TabsContent value="grid">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredSchedules.map((schedule) => (
-                  <CompletedScheduleCard
-                    key={schedule.id}
-                    schedule={schedule}
-                    onViewDetails={handleViewDetails}
-                    onViewReport={handleViewReport}
-                  />
+                  <CompletedScheduleCard key={schedule.id} schedule={schedule} onViewDetails={handleViewDetails} onViewReport={handleViewReport} />
                 ))}
               </div>
             </TabsContent>
@@ -308,12 +250,6 @@ export default function CompletedSchedulesPage() {
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr className="w-full">
-                        {/* <th className="w-12 px-4 py-3">
-                          <Checkbox
-                            checked={selectedSchedules.length === filteredSchedules.length}
-                            onCheckedChange={handleSelectAll}
-                          />
-                        </th> */}
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           <div className="flex items-center gap-1">
                             <User className="w-3 h-3" />
@@ -350,29 +286,25 @@ export default function CompletedSchedulesPage() {
                             Chefe Alocado
                           </div>
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Ações
-                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
                       </tr>
                     </thead>
 
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredSchedules.map((schedule) => {
                         // 1. Data de criação do agendamento (coluna vermelha)
-                        const creationDate = schedule.criado_aos 
-                          ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR })
-                          : "N/A";
-                        
+                        const creationDate = schedule.criado_aos ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR }) : "N/A";
+
                         // 2. Status individuais dos exames (coluna amarela)
                         const examStatuses = getExamStatuses(schedule.Exame || []);
-                        const hasMoreStatuses = (schedule.Exame?.filter(e => e.status !== "CONCLUIDO").length || 0) > 2;
-                        
+                        const hasMoreStatuses = (schedule.Exame?.filter((e) => e.status !== "CONCLUIDO").length || 0) > 2;
+
                         // 3. Status de pagamento do bloco (coluna azul)
                         const paymentStatus = getPaymentStatus(schedule.Exame || []);
-                        
+
                         // 4. Valor total do bloco (coluna verde)
                         const totalValue = calculateTotalValue(schedule.Exame || []);
-                        
+
                         // 5. Chefe de laboratório alocado (coluna rosa)
                         const hasAllocatedChief = !!schedule.id_chefe_alocado;
 
@@ -401,60 +333,38 @@ export default function CompletedSchedulesPage() {
                                   </span>
                                 </div>
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {schedule.Paciente?.nome_completo || "N/A"}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    {schedule.Paciente?.numero_identificacao || "Sem BI"}
-                                  </div>
+                                  <div className="text-sm font-medium text-gray-900">{schedule.Paciente?.nome_completo || "N/A"}</div>
+                                  <div className="text-xs text-gray-500">{schedule.Paciente?.numero_identificacao || "Sem BI"}</div>
                                 </div>
                               </div>
                             </td>
 
                             {/* Data de Criação (Vermelha) */}
                             <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="text-sm text-gray-900 font-medium">
-                                {creationDate}
-                              </div>
-                              {schedule.criado_aos && (
-                                <div className="text-xs text-gray-500">
-                                  {format(new Date(schedule.criado_aos), "HH:mm", { locale: ptBR })}
-                                </div>
-                              )}
+                              <div className="text-sm text-gray-900 font-medium">{creationDate}</div>
+                              {schedule.criado_aos && <div className="text-xs text-gray-500">{format(new Date(schedule.criado_aos), "HH:mm", { locale: ptBR })}</div>}
                             </td>
 
                             {/* Status dos Exames (Amarela) */}
                             <td className="px-4 py-4">
                               <div className="flex flex-wrap gap-1">
                                 {examStatuses.map((status, index) => (
-                                  <Badge
-                                    key={index}
-                                    variant="outline"
-                                    className={`text-xs px-2 py-0.5 border-${status.color}-200 bg-${status.color}-50 text-${status.color}-700`}
-                                  >
+                                  <Badge key={index} variant="outline" className={`text-xs px-2 py-0.5 border-${status.color}-200 bg-${status.color}-50 text-${status.color}-700`}>
                                     {status.label}
                                   </Badge>
                                 ))}
                                 {hasMoreStatuses && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs px-2 py-0.5 border-gray-200 bg-gray-50 text-gray-600"
-                                  >
+                                  <Badge variant="outline" className="text-xs px-2 py-0.5 border-gray-200 bg-gray-50 text-gray-600">
                                     +Ver mais
                                   </Badge>
                                 )}
-                                {examStatuses.length === 0 && (
-                                  <span className="text-xs text-gray-500">Nenhum exame ativo</span>
-                                )}
+                                {examStatuses.length === 0 && <span className="text-xs text-gray-500">Nenhum exame ativo</span>}
                               </div>
                             </td>
 
                             {/* Status de Pagamento (Azul) */}
                             <td className="px-4 py-4 whitespace-nowrap">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs px-3 py-1 border-${paymentStatus.color}-200 bg-${paymentStatus.color}-50 text-${paymentStatus.color}-700`}
-                              >
+                              <Badge variant="outline" className={`text-xs px-3 py-1 border-${paymentStatus.color}-200 bg-${paymentStatus.color}-50 text-${paymentStatus.color}-700`}>
                                 {paymentStatus.status}
                               </Badge>
                             </td>
@@ -464,19 +374,14 @@ export default function CompletedSchedulesPage() {
                               <div className="text-sm font-semibold text-green-700">
                                 {new Intl.NumberFormat("pt-AO", {
                                   style: "currency",
-                                  currency: "AOA"
+                                  currency: "AOA",
                                 }).format(totalValue)}
                               </div>
                             </td>
 
                             {/* Chefe Alocado (Rosa) */}
                             <td className="px-4 py-4 whitespace-nowrap">
-                              <Badge
-                                variant="outline"
-                                className={`text-xs px-3 py-1 ${hasAllocatedChief 
-                                  ? "border-pink-200 bg-pink-50 text-pink-700" 
-                                  : "border-gray-200 bg-gray-50 text-gray-600"}`}
-                              >
+                              <Badge variant="outline" className={`text-xs px-3 py-1 ${hasAllocatedChief ? "border-pink-200 bg-pink-50 text-pink-700" : "border-gray-200 bg-gray-50 text-gray-600"}`}>
                                 {hasAllocatedChief ? "Alocado" : "Não alocado"}
                               </Badge>
                             </td>
@@ -485,29 +390,19 @@ export default function CompletedSchedulesPage() {
                             <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    className="h-8 w-8 p-0"
-                                  >
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                     <MoreHorizontal className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
 
                                 <DropdownMenuContent align="end" className="w-48">
-                                  <DropdownMenuItem 
-                                    onClick={() => handleViewDetails(schedule)}
-                                    className="cursor-pointer"
-                                  >
-                                    <Eye className="mr-2 h-4 w-4" /> 
+                                  <DropdownMenuItem onClick={() => handleViewDetails(schedule)} className="cursor-pointer">
+                                    <Eye className="mr-2 h-4 w-4" />
                                     Ver Detalhes
                                   </DropdownMenuItem>
 
-                                  <DropdownMenuItem 
-                                    onClick={() => handleViewReport(schedule)}
-                                    className="cursor-pointer"
-                                  >
-                                    <FileText className="mr-2 h-4 w-4" /> 
+                                  <DropdownMenuItem onClick={() => handleViewReport(schedule)} className="cursor-pointer">
+                                    <FileText className="mr-2 h-4 w-4" />
                                     Gerar Relatório
                                   </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -529,9 +424,7 @@ export default function CompletedSchedulesPage() {
                     const paymentStatus = getPaymentStatus(schedule.Exame || []);
                     const totalValue = calculateTotalValue(schedule.Exame || []);
                     const hasAllocatedChief = !!schedule.id_chefe_alocado;
-                    const creationDate = schedule.criado_aos 
-                      ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR })
-                      : "N/A";
+                    const creationDate = schedule.criado_aos ? format(new Date(schedule.criado_aos), "dd/MM/yyyy", { locale: ptBR }) : "N/A";
 
                     return (
                       <Card key={schedule.id} className="p-4">
@@ -550,19 +443,11 @@ export default function CompletedSchedulesPage() {
                                 </span>
                               </div>
                               <div>
-                                <h4 className="font-medium text-gray-900">
-                                  {schedule.Paciente?.nome_completo}
-                                </h4>
-                                <p className="text-sm text-gray-500">
-                                  {schedule.Paciente?.numero_identificacao || "Sem BI"}
-                                </p>
+                                <h4 className="font-medium text-gray-900">{schedule.Paciente?.nome_completo}</h4>
+                                <p className="text-sm text-gray-500">{schedule.Paciente?.numero_identificacao || "Sem BI"}</p>
                               </div>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleViewDetails(schedule)}
-                            >
+                            <Button variant="ghost" size="sm" onClick={() => handleViewDetails(schedule)}>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </div>
@@ -575,14 +460,7 @@ export default function CompletedSchedulesPage() {
                             </div>
                             <div>
                               <Label className="text-xs text-gray-500">Pagamento</Label>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs mt-1 ${
-                                  paymentStatus.status === "Pago" 
-                                    ? "border-green-200 bg-green-50 text-green-700" 
-                                    : "border-yellow-200 bg-yellow-50 text-yellow-700"
-                                }`}
-                              >
+                              <Badge variant="outline" className={`text-xs mt-1 ${paymentStatus.status === "Pago" ? "border-green-200 bg-green-50 text-green-700" : "border-yellow-200 bg-yellow-50 text-yellow-700"}`}>
                                 {paymentStatus.status}
                               </Badge>
                             </div>
@@ -591,20 +469,13 @@ export default function CompletedSchedulesPage() {
                               <p className="text-sm font-semibold text-green-700">
                                 {new Intl.NumberFormat("pt-AO", {
                                   style: "currency",
-                                  currency: "AOA"
+                                  currency: "AOA",
                                 }).format(totalValue)}
                               </p>
                             </div>
                             <div>
                               <Label className="text-xs text-gray-500">Chefe</Label>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs mt-1 ${
-                                  hasAllocatedChief 
-                                    ? "border-pink-200 bg-pink-50 text-pink-700" 
-                                    : "border-gray-200 bg-gray-50 text-gray-600"
-                                }`}
-                              >
+                              <Badge variant="outline" className={`text-xs mt-1 ${hasAllocatedChief ? "border-pink-200 bg-pink-50 text-pink-700" : "border-gray-200 bg-gray-50 text-gray-600"}`}>
                                 {hasAllocatedChief ? "Alocado" : "Não alocado"}
                               </Badge>
                             </div>
@@ -615,19 +486,12 @@ export default function CompletedSchedulesPage() {
                             <Label className="text-xs text-gray-500 mb-2">Status dos Exames</Label>
                             <div className="flex flex-wrap gap-1">
                               {examStatuses.map((status, index) => (
-                                <Badge
-                                  key={index}
-                                  variant="outline"
-                                  className="text-xs px-2 py-0.5"
-                                >
+                                <Badge key={index} variant="outline" className="text-xs px-2 py-0.5">
                                   {status.label}
                                 </Badge>
                               ))}
-                              {(schedule.Exame?.filter(e => e.status !== "CONCLUIDO").length || 0) > 2 && (
-                                <Badge
-                                  variant="outline"
-                                  className="text-xs px-2 py-0.5"
-                                >
+                              {(schedule.Exame?.filter((e) => e.status !== "CONCLUIDO").length || 0) > 2 && (
+                                <Badge variant="outline" className="text-xs px-2 py-0.5">
                                   +Ver mais
                                 </Badge>
                               )}
@@ -636,11 +500,7 @@ export default function CompletedSchedulesPage() {
 
                           {/* Botão de Ações */}
                           <div className="flex justify-end pt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewDetails(schedule)}
-                            >
+                            <Button variant="outline" size="sm" onClick={() => handleViewDetails(schedule)}>
                               <Eye className="h-3 w-3 mr-1" />
                               Ver Detalhes
                             </Button>
@@ -656,18 +516,10 @@ export default function CompletedSchedulesPage() {
         )}
       </Tabs>
 
-      <CompletedScheduleDetailsModal
-        schedule={selectedSchedule}
-        isOpen={isDetailsModalOpen}
-        onClose={handleCloseDetailsModal}
-      />
+      <CompletedScheduleDetailsModal schedule={selectedSchedule} isOpen={isDetailsModalOpen} onClose={handleCloseDetailsModal} />
     </div>
   );
 }
 
 // Componente Label para mobile view
-const Label = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <div className={`text-xs font-medium text-gray-600 ${className}`}>
-    {children}
-  </div>
-);
+const Label = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => <div className={`text-xs font-medium text-gray-600 ${className}`}>{children}</div>;
