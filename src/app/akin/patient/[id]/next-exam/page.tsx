@@ -22,6 +22,7 @@ import { MedicalMaterialsModal } from "./_materialModal";
 import { EditScheduleFormModal } from "@/app/akin/schedule/editScheduleData";
 import { formatCurrency } from "@/utils/formartCurrency";
 import { toast } from "sonner";
+import { Exam } from "../exam-history/useExamHookData";
 
 // Função auxiliar para formatar status em português
 const getStatusInPortuguese = (status: string) => {
@@ -134,7 +135,7 @@ const ExamCardModern = ({
       date: exam.data_agendamento,
       time: exam.hora_agendamento,
       technicianId: exam.id_tecnico_alocado,
-      chiefId: exam.Agendamento?.id_chefe_alocado,
+      chiefId:exam?.id_chefe_alocado ?? exam.Agendamento?.id_chefe_alocado,
       status: exam.status,
     };
     onEdit(examData);
@@ -274,7 +275,7 @@ const ExamCardModern = ({
             date: exam.data_agendamento,
             time: exam.hora_agendamento,
             technicianId: exam.id_tecnico_alocado,
-            chiefId: exam.Agendamento?.id_chefe_alocado,
+            chiefId: exam?.id_chefe_alocado || exam.Agendamento?.id_chefe_alocado,
             status: exam.status,
           }}
           examId={exam.id}
@@ -326,7 +327,7 @@ const ExamListItem = ({
       date: exam.data_agendamento,
       time: exam.hora_agendamento,
       technicianId: exam.id_tecnico_alocado,
-      chiefId: exam.Agendamento?.id_chefe_alocado,
+      chiefId:exam?.id_chefe_alocado ?? exam.Agendamento?.id_chefe_alocado,
       status: exam.status,
     };
     onEdit(examData);
@@ -415,7 +416,7 @@ const ExamListItem = ({
             date: exam.data_agendamento,
             time: exam.hora_agendamento,
             technicianId: exam.id_tecnico_alocado,
-            chiefId: exam.Agendamento?.id_chefe_alocado,
+            chiefId: exam?.id_chefe_alocado ?? exam.Agendamento?.id_chefe_alocado,
             status: exam.status,
           }}
           examId={exam.id}
@@ -473,10 +474,17 @@ const UpcomingExams = () => {
     },
   });
 
-  const getNameTech = (id: string | null) => {
-    if (!id) return "Não atribuído";
-    const tech = techLab.data?.data.find((tech) => tech.id === id);
-    return tech?.nome || "Nome não encontrado";
+  const getNameTech = (exam: any) => {
+    if (exam?.id_chefe_alocado) {
+      const tech = techLab.data?.data.find((t) => t.id === exam?.id_chefe_alocado);
+      return tech?.nome || "Nome não encontrado";
+    }
+
+    if (exam?.Agendamento?.id_chefe_alocado) {
+      const tech = techLab.data?.data.find((t) => t.id === exam?.Agendamento?.id_chefe_alocado);
+      return tech?.nome || "Nome não encontrado";
+    }
+    return "Não alocado";
   };
 
   const filteredData = filter ? data?.data.data.filter((exam) => exam.Tipo_Exame.nome.toLowerCase().includes(filter.toLowerCase())) : data?.data.data;
@@ -543,7 +551,25 @@ const UpcomingExams = () => {
 
   // Para editar o chefe alocado:
   const handleEditChief = async (examId: number, chiefId: string | null) => {
-    return handleEditField(examId, "id_chefe_alocado", chiefId);
+    try {
+      const updateData = {
+        id_chefe_alocado: chiefId,
+      };
+      const response = await _axios.patch(`/exams/${examId}`, updateData);
+      if (response.status === 200) {
+        toast.success(`Chefe alocado atualizado com sucesso!`);
+        queryClient.invalidateQueries({ queryKey: ["next-exam"] });
+        queryClient.invalidateQueries({ queryKey: ["tech-lab"] });
+
+        queryClient.refetchQueries({ queryKey: ["next-exam"] });
+        return true;
+      }
+    } catch (error: any) {
+      console.error("Erro ao atualizar chefe: ", error);
+      toast.error(error.response?.data?.message || "Erro ao atualizar chefe de laboratório");
+      return false;
+    }
+    // return handleEditField(examId, "id_chefe_alocado", chiefId);
   };
 
   // Para editar o status do exame:
@@ -597,7 +623,7 @@ const UpcomingExams = () => {
   const handleModalSave = async (examData: any) => {
     try {
       console.log("Saving exam data:", examData);
-
+      queryClient.invalidateQueries({ queryKey: ["next-exam"] });
       // Atualizar múltiplos campos
       const updatePromises = [];
 
@@ -620,13 +646,15 @@ const UpcomingExams = () => {
       // Executar todas as atualizações
       await Promise.all(updatePromises);
 
-      // Se houver um callback de sucesso
-      handleExamSaved();
-      toast.success("Exame atualizado com sucesso!");
-
+      setTimeout(() => {
+        queryClient.refetchQueries({ queryKey: ["next-exam"] });
+        queryClient.refetchQueries({ queryKey: ["tech-lab"] });
+      }, 500);
+      toast.success("Alterações salvas com sucesso!");
       return true;
     } catch (error) {
       console.error("Erro ao salvar alterações:", error);
+      toast.error("Erro ao salvar alterações");
       return false;
     }
   };
@@ -657,14 +685,20 @@ const UpcomingExams = () => {
       date: exam.data_agendamento,
       time: exam.hora_agendamento,
       technicianId: exam.id_tecnico_alocado,
-      chiefId: exam.Agendamento?.id_chefe_alocado,
+      chiefId: exam?.id_chefe_alocado || exam.Agendamento?.id_chefe_alocado,
       status: exam.status,
-      status_pagamento: exam.status_pagamento,
+      // status_pagamento: exam.status_pagamento,
     };
-
     // Abrir modal ou processar diretamente
-    setIsEditModalOpen(true);
     setSelectedExam(examData);
+    setIsEditModalOpen(true);
+
+    console.log("Exam data structure:", {
+      id: exam.id,
+      id_chefe_alocado: exam?.id_chefe_alocado,
+      Agendamento_id_chefe_alocado: exam.Agendamento?.id_chefe_alocado,
+      examData: exam,
+    });
   };
 
   const handleExamSaved = () => {
