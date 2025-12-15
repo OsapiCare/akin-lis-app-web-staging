@@ -11,6 +11,6 @@ export const api = axios.create({
 // })
 
 export const agentUrl = axios.create({
-  baseURL: "https://chatkin.osapicare.com",
-  // baseURL: "https://osapicare.pythonanywhere.com",
+  // baseURL: "https://chatkin.osapicare.com",
+  baseURL: "https://osapicare.pythonanywhere.com/",
 })
