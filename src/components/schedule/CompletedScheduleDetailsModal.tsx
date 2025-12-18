@@ -11,9 +11,8 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "primereact/calendar";
 import { CalendarDays, Clock, User, Phone, Stethoscope, CheckCircle, XCircle, AlertCircle, Edit3, Mail, Users, Save, X, FileText, DollarSign, CreditCard, Shield } from "lucide-react";
-import { format, parse, isValid } from "date-fns";
+import { format, parse, isValid, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { _axios } from "@/Api/axios.config";
 import { ___showSuccessToastNotification, ___showErrorToastNotification } from "@/lib/sonner";
@@ -22,8 +21,8 @@ import { labTechniciansRoutes } from "@/Api/Routes/lab-technicians/index.routes"
 import { labChiefRoutes } from "@/Api/Routes/lab-chief/index.routes";
 import { examRoutes } from "@/Api/Routes/Exam/index.route";
 import TimePicker from "@/components/ui/timepicker";
-import "primereact/resources/themes/lara-light-indigo/theme.css";
-import "primereact/resources/primereact.min.css";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface CompletedScheduleDetailsModalProps {
   schedule: CompletedScheduleType | null;
@@ -48,15 +47,24 @@ interface ExamType {
   descricao?: string;
 }
 
-// Função para converter string no formato yy/M/d para Date
+// Função para converter string no formato yy/M/d para Date - MELHORADA
 const parseFromYYMMDD = (dateString: string): Date | null => {
   if (!dateString || dateString.trim() === "") return null;
 
   try {
-    // Remove espaços em branco
     const trimmedString = dateString.trim();
 
-    // Tenta parsear no formato yy/M/d
+    // Primeiro tenta como ISO string (formato do backend: YYYY-MM-DD)
+    try {
+      const isoDate = new Date(trimmedString);
+      if (isValid(isoDate)) {
+        return isoDate;
+      }
+    } catch {
+      // Continua
+    }
+
+    // Tenta no formato yy/M/d
     if (trimmedString.includes("/")) {
       const parts = trimmedString.split("/").map((part) => part.trim());
 
@@ -66,51 +74,34 @@ const parseFromYYMMDD = (dateString: string): Date | null => {
         const day = parseInt(parts[2], 10);
 
         // Verifica se os valores são números válidos
-        if (isNaN(year) || isNaN(month) || isNaN(day)) {
-          throw new Error("Valores de data inválidos");
-        }
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          // Se ano tem 2 dígitos, assume 2000+
+          if (year < 100) {
+            year = 2000 + year;
+          }
 
-        // Ajusta o ano (assume 2000+ para anos de 2 dígitos)
-        if (year < 100) {
-          year = 2000 + year;
-        }
-
-        const parsed = new Date(year, month, day);
-
-        // Verifica se a data é válida
-        if (parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === day && parsed.getFullYear() >= 2000 && parsed.getFullYear() <= 2100) {
-          return parsed;
-        }
-      }
-    }
-
-    // Se não funcionou, tenta parsear com date-fns
-    try {
-      // Tenta diferentes formatos
-      const formats = ["yy/M/d", "yyyy/M/d", "yy-MM-dd", "yyyy-MM-dd", "yy.MM.dd", "yyyy.MM.dd"];
-
-      for (const fmt of formats) {
-        try {
-          const parsed = parse(trimmedString, fmt, new Date());
-          if (isValid(parsed)) {
+          const parsed = new Date(year, month, day);
+          
+          // Verifica se a data é válida
+          if (isValid(parsed) && parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === day) {
             return parsed;
           }
-        } catch {
-          continue;
         }
       }
-    } catch {
-      // Ignora erros do date-fns
     }
 
-    // Tenta como ISO string do backend
-    try {
-      const isoDate = new Date(trimmedString);
-      if (isValid(isoDate)) {
-        return isoDate;
+    // Tenta outros formatos comuns com date-fns
+    const formats = ["dd/MM/yyyy", "dd-MM-yyyy", "yyyy/MM/dd", "yyyy-MM-dd", "yy/MM/dd", "yy-MM-dd", "yy/M/d", "yyyy/M/d"];
+    
+    for (const fmt of formats) {
+      try {
+        const parsed = parse(trimmedString, fmt, new Date());
+        if (isValid(parsed)) {
+          return parsed;
+        }
+      } catch {
+        continue;
       }
-    } catch {
-      // Ignora erros
     }
 
     console.warn(`Não foi possível parsear a data: "${dateString}"`);
@@ -131,6 +122,15 @@ const formatToYYMMDD = (date: Date | null | undefined): string => {
     console.error("Erro ao formatar data:", error);
     return "";
   }
+};
+
+// Função para verificar se uma data é válida para agendamento
+const isValidScheduleDate = (date: Date): boolean => {
+  const today = startOfDay(new Date());
+  const selectedDate = startOfDay(date);
+  
+  // Verifica se a data selecionada é hoje ou no futuro
+  return !isBefore(selectedDate, today);
 };
 
 export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: CompletedScheduleDetailsModalProps) {
@@ -239,6 +239,16 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
     }
   }, [editedExam]);
 
+  // Limpa estados quando a modal fecha
+  useEffect(() => {
+    if (!isOpen) {
+      setEditingExam(null);
+      setEditedExam(null);
+      setSelectedTechnician(null);
+      setSelectedChief(null);
+    }
+  }, [isOpen]);
+
   const updateExamMutation = useMutation({
     mutationFn: async (data: { examId: number; updates: Partial<EditableExam> }) => {
       const updatePayload: any = { ...data.updates };
@@ -272,8 +282,10 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
     onSuccess: (response, variables) => {
       ___showSuccessToastNotification({ message: "Exame atualizado com sucesso!" });
 
-      // Atualiza o cache do React Query
+      // Atualiza o cache do React Query AGressivamente
       queryClient.invalidateQueries({ queryKey: ["completed-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["exams"] });
 
       // Atualiza o estado local imediatamente
       setLocalExams((prev) =>
@@ -284,12 +296,13 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
             // Formata a data para o formato yy/M/d para exibição
             if (variables.updates.data_agendamento) {
               try {
-                const date = parseFromYYMMDD(variables.updates.data_agendamento) || new Date();
-                if (date && isValid(date)) {
+                // A data vem do backend no formato YYYY-MM-DD
+                const date = new Date(variables.updates.data_agendamento);
+                if (isValid(date)) {
                   updatedExam.data_agendamento = format(date, "yy/M/d");
                 }
               } catch (error) {
-                console.error("Erro ao formatar data:", error);
+                console.error("Erro ao formatar data para exibição:", error);
                 updatedExam.data_agendamento = format(new Date(), "yy/M/d");
               }
             }
@@ -345,6 +358,12 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
     },
     onError: () => ___showErrorToastNotification({ message: "Erro ao alocar chefe." }),
   });
+
+  const handleForceRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["completed-schedules"] });
+    queryClient.refetchQueries({ queryKey: ["completed-schedules"] });
+    ___showSuccessToastNotification({ message: "Dados recarregados!" });
+  };
 
   if (!schedule) return null;
 
@@ -459,6 +478,17 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
   const handleSaveExam = () => {
     if (!editedExam) return;
 
+    // Valida se a data selecionada é válida
+    const selectedDate = parseFromYYMMDD(editedExam.data_agendamento);
+    const today = startOfDay(new Date());
+    
+    if (selectedDate && isBefore(startOfDay(selectedDate), today)) {
+      ___showErrorToastNotification({
+        message: "Não é possível agendar para uma data anterior à data atual.",
+      });
+      return;
+    }
+
     updateExamMutation.mutate({
       examId: editedExam.id,
       updates: {
@@ -510,10 +540,34 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
   };
 
   // Função para mudança do Calendar
-  const handleDateChange = (value: Date | null) => {
-    if (editedExam) {
-      const formattedDate = formatToYYMMDD(value);
-      setEditedExam({ ...editedExam, data_agendamento: formattedDate });
+  const handleDateChange = (date: Date | null) => {
+    if (editedExam && date) {
+      try {
+        // Valida se a data é válida para agendamento
+        if (!isValidScheduleDate(date)) {
+          ___showErrorToastNotification({
+            message: "Não é possível agendar para uma data anterior à data atual.",
+          });
+          return;
+        }
+
+        // Formata a data para o formato yy/M/d
+        const formattedDate = format(date, "yy/M/d");
+        
+        setEditedExam(prev => ({
+          ...prev!,
+          data_agendamento: formattedDate
+        }));
+        
+        // Atualiza também o calendarDates
+        setCalendarDates(prev => new Map(prev.set(editedExam.id, date)));
+        
+        ___showSuccessToastNotification({
+          message: "Data selecionada com sucesso!",
+        });
+      } catch (error) {
+        console.error("Erro ao formatar data:", error);
+      }
     }
   };
 
@@ -551,6 +605,17 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
             </div>
             <div className="flex items-center gap-2">
               {getExamStatusBadge(overallStatus)}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleForceRefresh}
+                className="h-8 px-2"
+                title="Recarregar dados"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </Button>
               <DialogClose className="rounded-full p-1.5 hover:bg-gray-100 transition-colors">
                 <X className="w-4 h-4" />
               </DialogClose>
@@ -731,7 +796,7 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
                             <div className="flex gap-2">
                               <Button variant="default" size="sm" onClick={handleSaveExam} disabled={updateExamMutation.isPending}>
                                 <Save className="w-3 h-3 mr-1" />
-                                Salvar
+                                {updateExamMutation.isPending ? "Salvando..." : "Salvar"}
                               </Button>
                               <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={updateExamMutation.isPending}>
                                 <X className="w-3 h-3 mr-1" />
@@ -797,32 +862,59 @@ export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: Com
                             </div>
                           </div>
 
-                          {/* Calendário para Data (PrimeReact Calendar) */}
+                          {/* Calendário para Data (Shadcn Calendar) */}
                           <div>
                             <Label className="text-sm">Selecione a Data</Label>
                             <div className="mt-2">
-                              <Calendar
-                                value={calendarDate}
-                                onChange={(e) => handleDateChange(e.value as Date | null)}
-                                showIcon
-                                dateFormat="yy/mm/dd"
-                                className="w-full h-10  bg-white border rounded-md shadow-sm focus:border-none"
-                                showButtonBar
-                                showOnFocus={false}
-                                placeholder="YYYY/MM/DD"
-                                inputId={`calendar-${exam.id}`}
-                                appendTo="self"
-                                panelClassName="relative z-[9999]"
-                                panelStyle={{
-                                  position: "relative",
-                                  zIndex: 9999,
-                                  maxWidth: "100px",
-                                  width: "100%",
-                                  transform: "translate(4%, 0%)",
-                                }}
-                                touchUI={false}
-                                hideOnDateTimeSelect
-                              />
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    className="w-full justify-start text-left font-normal h-10 px-3 bg-white border rounded-md shadow-sm hover:bg-white"
+                                  >
+                                    <CalendarDays className="mr-2 h-4 w-4" />
+                                    {calendarDate ? (
+                                      <span className="font-medium">{format(calendarDate, "dd/MM/yy")}</span>
+                                    ) : (
+                                      <span className="text-gray-400">Selecione uma data</span>
+                                    )}
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 z-[100]" align="start">
+                                  <Calendar
+                                    mode="single"
+                                    selected={calendarDate || undefined}
+                                    onSelect={(date) => {
+                                      if (date && editedExam) {
+                                        handleDateChange(date);
+                                      }
+                                    }}
+                                    initialFocus
+                                    className="rounded-md border p-3"
+                                    // Desabilita datas anteriores a hoje
+                                    disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                                  />
+                                  <div className="p-2 border-t flex flex-col gap-1">
+                                    <p className="text-xs text-gray-500 text-center mb-1">
+                                      Data atual: {format(new Date(), "dd/MM/yyyy")}
+                                    </p>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="w-full"
+                                      onClick={() => {
+                                        const today = new Date();
+                                        handleDateChange(today);
+                                      }}
+                                    >
+                                      Usar data de hoje
+                                    </Button>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Nota: Só é permitido agendar para a data atual ou datas futuras.
+                              </p>
                             </div>
                           </div>
 
