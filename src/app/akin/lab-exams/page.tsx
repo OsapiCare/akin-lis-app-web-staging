@@ -85,15 +85,15 @@ export default function LabExamsPage() {
     return variants[type as keyof typeof variants] || variants.pending;
   };
 
-  const handleExamEdit = (exam: ExamsType) => {
+  const handleExamEdit = (exam: ExamesTypes) => {
     toast.info("Função de edição será implementada");
   };
 
-  const handleExamView = (exam: ExamsType) => {
+  const handleExamView = (exam: ExamesTypes) => {
     toast.info("Função de visualização será implementada");
   };
 
-  const handleExamStart = (exam: ExamsType) => {
+  const handleExamStart = (exam: ExamesTypes) => {
     toast.info("Função de iniciar exame será implementada");
   };
 
@@ -333,15 +333,15 @@ export default function LabExamsPage() {
             <div>
               {viewMode === "card" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {pendingExams?.map((exam: ExamsType) => (
+                  {pendingExams?.map((exam: ExamesTypes) => (
                     <ExamCard
                       key={exam.id}
                       exam={exam}
                       onEdit={handleExamEdit}
                       onView={handleExamView}
                       onStart={handleExamStart}
-                    />
-                  ))}
+                      />
+                    ))}
                 </div>
               ) : (
                 <ExamTable

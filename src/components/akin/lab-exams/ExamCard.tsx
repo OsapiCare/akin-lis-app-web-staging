@@ -24,10 +24,10 @@ import { ptBR } from "date-fns/locale";
 import { formatCurrency } from "@/utils/formartCurrency";
 
 interface ExamCardProps {
-  exam: ExamsType;
-  onEdit?: (exam: ExamsType) => void;
-  onView?: (exam: ExamsType) => void;
-  onStart?: (exam: ExamsType) => void;
+  exam: ExamesTypes;
+  onEdit?: (exam: ExamesTypes) => void;
+  onView?: (exam: ExamesTypes) => void;
+  onStart?: (exam: ExamesTypes) => void;
   showActions?: boolean;
 }
 
@@ -100,6 +100,11 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
     }
   };
 
+  // Pega o primeiro exame da lista (se houver)
+  const primeiroExame = exam.Exame?.[0];
+  const tipoExame = primeiroExame?.Tipo_Exame;
+  const precoTotal = exam.Exame?.reduce((total, ex) => total + (ex.Tipo_Exame?.preco || 0), 0) || 0;
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
@@ -112,7 +117,9 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
               </AvatarFallback>
             </Avatar>
             <div>
-              <CardTitle className="text-lg">{exam?.Tipo_Exame?.nome}</CardTitle>
+              <CardTitle className="text-lg">
+                {tipoExame?.nome || "Exame não especificado"}
+              </CardTitle>
               <p className="text-sm text-gray-600">ID: #{exam.id}</p>
             </div>
           </div>
@@ -130,7 +137,7 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
         <div className="bg-gray-50 p-3 rounded-lg">
           <div className="flex items-center text-sm text-gray-700">
             <User className="h-4 w-4 mr-2" />
-            <span className="font-medium">Paciente: {exam.Agendamento.Paciente.nome_completo}</span>
+            <span className="font-medium">Paciente: {exam.Paciente.nome_completo}</span>
           </div>
         </div>
 
@@ -149,11 +156,11 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
           <div className="space-y-2">
             <div className="flex items-center text-sm text-gray-600">
               <CreditCard className="h-4 w-4 mr-2" />
-              <span>Preço: {formatCurrency(exam?.Tipo_Exame?.preco ?? 0)}</span>
+              <span>Preço: {formatCurrency(precoTotal)}</span>
             </div>
             <div className="flex items-center text-sm">
-              <Badge variant="outline" className={getPaymentStatusColor(exam.status_pagamento)}>
-                {formatPaymentStatus(exam.status_pagamento)}
+              <Badge variant="outline" className={getPaymentStatusColor(exam.status_financeiro)}>
+                {formatPaymentStatus(exam.status_financeiro)}
               </Badge>
             </div>
           </div>
@@ -163,13 +170,16 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">Tipo de Exame:</p>
-          <p className="text-sm text-gray-600">{exam?.Tipo_Exame?.nome}</p>
+          <p className="text-sm text-gray-600">
+            {tipoExame?.nome || "Não especificado"}
+            {exam.Exame?.length > 1 && ` + mais ${exam.Exame.length - 1} exame(s)`}
+          </p>
         </div>
 
         {exam.id_tecnico_alocado && (
           <div className="flex items-center text-sm text-gray-600">
             <User className="h-4 w-4 mr-2" />
-            <span>Técnico: {exam.Tecnico_Laboratorio?.nome || 'Não alocado'}</span>
+            <span>Técnico: ID #{exam.id_tecnico_alocado}</span>
           </div>
         )}
 
@@ -179,6 +189,12 @@ export function ExamCard({ exam, onEdit, onView, onStart, showActions = true }: 
               <Button variant="outline" size="sm" onClick={() => onEdit(exam)}>
                 <Edit className="h-4 w-4 mr-2" />
                 Editar
+              </Button>
+            )}
+            {onView && (
+              <Button variant="outline" size="sm" onClick={() => onView(exam)}>
+                <Eye className="h-4 w-4 mr-2" />
+                Visualizar
               </Button>
             )}
             {onStart && exam.status.toLowerCase() === 'pendente' && (

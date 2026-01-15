@@ -31,10 +31,10 @@ import { Collapsible, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatCurrency } from "@/utils/formartCurrency";
 
 interface ExamTableProps {
-  exams: ExamsType[];
-  onEdit?: (exam: ExamsType) => void;
-  onView?: (exam: ExamsType) => void;
-  onStart?: (exam: ExamsType) => void;
+  exams: ExamesTypes[];
+  onEdit?: (exam: ExamesTypes) => void;
+  onView?: (exam: ExamesTypes) => void;
+  onStart?: (exam: ExamesTypes) => void;
   showActions?: boolean;
 }
 
@@ -119,6 +119,19 @@ export function ExamTable({ exams, onEdit, onView, onStart, showActions = true }
     }
   };
 
+  // Função auxiliar para pegar o primeiro exame e calcular preço total
+  const getExamDetails = (exam: ExamesTypes) => {
+    const primeiroExame = exam.Exame?.[0];
+    const precoTotal = exam.Exame?.reduce((total, ex) => total + (ex.Tipo_Exame?.preco || 0), 0) || 0;
+    
+    return {
+      tipoExame: primeiroExame?.Tipo_Exame,
+      nomeExame: primeiroExame?.Tipo_Exame?.nome || "Exame não especificado",
+      precoTotal,
+      temMultiplosExames: (exam.Exame?.length || 0) > 1
+    };
+  };
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -135,115 +148,146 @@ export function ExamTable({ exams, onEdit, onView, onStart, showActions = true }
           </TableRow>
         </TableHeader>
         <TableBody>
-          {exams.map((exam) => (
-            <>
-              <TableRow key={exam.id} className="hover:bg-gray-50">
-                <TableCell>
-                  <Collapsible>
-                    <CollapsibleTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleRow(exam.id)}
-                        className="w-full p-0"
-                      >
-                        {expandedRows.has(exam.id) ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
+          {exams.map((exam) => {
+            const details = getExamDetails(exam);
+            
+            return (
+              <>
+                <TableRow key={exam.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => toggleRow(exam.id)}
+                          className="w-full p-0"
+                        >
+                          {expandedRows.has(exam.id) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </Collapsible>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src="" alt="Paciente" />
+                        <AvatarFallback>
+                          <User className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{details.nomeExame}</div>
+                        <div className="text-sm text-gray-500">
+                          Paciente: {exam.Paciente?.nome_completo}
+                          {details.temMultiplosExames && ` (+${exam.Exame.length - 1} exame(s))`}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatDate(exam.data_agendamento)}</TableCell>
+                  <TableCell>{exam.hora_agendamento}</TableCell>
+                  <TableCell>
+                    <Badge className={getStatusColor(exam.status)}>
+                      {getStatusIcon(exam.status)}
+                      <span className="ml-1">{formatStatus(exam.status)}</span>
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={getPaymentStatusColor(exam.status_financeiro)}>
+                      {formatPaymentStatus(exam.status_financeiro)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {formatCurrency(details.precoTotal)}
+                  </TableCell>
+                  {showActions && (
+                    <TableCell className="text-right">
+                      <div className="flex justify-end space-x-2">
+                        {onView && (
+                          <Button variant="outline" size="sm" onClick={() => onView(exam)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                         )}
-                      </Button>
-                    </CollapsibleTrigger>
-                  </Collapsible>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="" alt="Paciente" />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="font-medium">{exam?.Tipo_Exame?.nome}</div>
-                      <div className="text-sm text-gray-500">Paciente: {exam.Agendamento.Paciente.nome_completo}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{formatDate(exam.data_agendamento)}</TableCell>
-                <TableCell>{exam.hora_agendamento}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(exam.status)}>
-                    {getStatusIcon(exam.status)}
-                    <span className="ml-1">{formatStatus(exam.status)}</span>
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={getPaymentStatusColor(exam.status_pagamento)}>
-                    {formatPaymentStatus(exam.status_pagamento)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="font-medium"> {formatCurrency(exam?.Tipo_Exame?.preco ?? 0)}</TableCell>
-                {showActions && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      {onView && (
-                        <Button variant="outline" size="sm" onClick={() => onView(exam)}>
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onEdit && (
-                        <Button variant="outline" size="sm" onClick={() => onEdit(exam)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {onStart && exam.status.toLowerCase() === 'pendente' && (
-                        <Button size="sm" onClick={() => onStart(exam)} className="bg-akin-turquoise text-white hover:bg-akin-turquoise">
-                          <Play className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-
-              {expandedRows.has(exam.id) && (
-                <TableRow>
-                  <TableCell colSpan={showActions ? 8 : 7} className="bg-gray-50">
-                    <div className="p-4 space-y-3">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Tipo de Exame:</p>
-                          <p className="text-sm text-gray-600">{exam?.Tipo_Exame?.nome}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Técnico Alocado:</p>
-                          <p className="text-sm text-gray-600">
-                            {exam.id_tecnico_alocado || 'Não alocado'}
-                          </p>
-                        </div>
+                        {onEdit && (
+                          <Button variant="outline" size="sm" onClick={() => onEdit(exam)}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {onStart && exam.status.toLowerCase() === 'pendente' && (
+                          <Button size="sm" onClick={() => onStart(exam)} className="bg-akin-turquoise text-white hover:bg-akin-turquoise">
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Criado em:</p>
-                          <p className="text-sm text-gray-600">
-                            {format(new Date(exam.criado_aos), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700">Última atualização:</p>
-                          <p className="text-sm text-gray-600">
-                            {format(new Date(exam.atualizado_aos), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  )}
                 </TableRow>
-              )}
-            </>
-          ))}
+
+                {expandedRows.has(exam.id) && (
+                  <TableRow>
+                    <TableCell colSpan={showActions ? 8 : 7} className="bg-gray-50">
+                      <div className="p-4 space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Tipo de Exame:</p>
+                            <p className="text-sm text-gray-600">
+                              {details.nomeExame}
+                              {details.temMultiplosExames && (
+                                <span className="text-gray-500 ml-1">
+                                  ({exam.Exame.length} exames incluídos)
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Técnico Alocado:</p>
+                            <p className="text-sm text-gray-600">
+                              {exam.id_tecnico_alocado ? `ID #${exam.id_tecnico_alocado}` : 'Não alocado'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Data de Pagamento:</p>
+                            <p className="text-sm text-gray-600">
+                              {exam.data_pagamento ? formatDate(exam.data_pagamento) : 'Não pago'}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">Status de Reembolso:</p>
+                            <p className="text-sm text-gray-600">
+                              {formatStatus(exam.status_reembolso)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Lista de exames se houver múltiplos */}
+                        {details.temMultiplosExames && (
+                          <div>
+                            <p className="text-sm font-medium text-gray-700 mb-2">Exames Incluídos:</p>
+                            <ul className="space-y-1">
+                              {exam.Exame.map((ex, index) => (
+                                <li key={ex.id} className="text-sm text-gray-600 flex justify-between">
+                                  <span>{ex.Tipo_Exame?.nome || `Exame ${index + 1}`}</span>
+                                  <span>{formatCurrency(ex.Tipo_Exame?.preco || 0)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
