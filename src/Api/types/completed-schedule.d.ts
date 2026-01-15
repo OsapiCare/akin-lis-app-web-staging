@@ -31,7 +31,7 @@ interface PatientType {
   data_ultima_visita?: string;
   dias_desde_ultima_visita?: string;
   id_usuario: string;
-  criado_aos: Date
+  criado_aos?: Date
 }
 
 // ==============================================

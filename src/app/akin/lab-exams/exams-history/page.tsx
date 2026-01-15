@@ -60,7 +60,7 @@ export default function ExamsHistoryPage() {
     const matchesStatus = statusFilter === "all" || exam.status.toLowerCase() === statusFilter.toLowerCase();
 
     const matchesPayment = paymentFilter === "all" ||
-      exam.status_pagamento.toLowerCase() === paymentFilter.toLowerCase();
+      (exam.status_pagamento?.toLowerCase() || "") === paymentFilter.toLowerCase();
 
     const matchesDateRange = (() => {
       if (!dateFrom && !dateTo) return true;
@@ -85,8 +85,8 @@ export default function ExamsHistoryPage() {
     return matchesSearch && matchesStatus && matchesPayment && matchesDateRange;
   });
 
-  const handleExamView = (exam: ExamsType) => {
-    toast.info(`Visualizando exame: ${exam?.Tipo_Exame?.nome}`);
+  const handleExamView = (exam: ExamesTypes) => {
+    toast.info(`Visualizando exame: ${exam.Exame?.[0]?.Tipo_Exame?.nome}`);
   };
 
   const handleRefresh = () => {
@@ -393,7 +393,7 @@ export default function ExamsHistoryPage() {
             <div>
               {viewMode === "card" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredExams.map((exam) => (
+                  {filteredExams.map((exam: any) => (
                     <ExamCard
                       key={exam.id}
                       exam={exam}

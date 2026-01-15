@@ -81,16 +81,43 @@ interface EditableExam {
 }
 
 interface ExamesTypes {
-  id:number;
-  id_paciente:string;
-  id_unidade_de_saude:number;
-  data_agendamento:string;
-  hora_agendamento:string;
-  status:StatusClinico;
+  id: number;
+  id_paciente: string;
+  id_unidade_de_saude: number;
+  data_agendamento: string;
+  hora_agendamento: string;
+  status: StatusClinico;
   status_financeiro: StatusFinanceiro;
   status_reembolso: StatusReembolso;
   id_tecnico_alocado: number | null;
   data_pagamento: string | null;
   Paciente: PatientType;
-  Exame: ExamsType[];
+  Exame: ExamsType[]; // Adicionado - estava comentado
+  
+  // Propriedades que estão nos dados mock mas não na interface:
+  data_formatada?: string;
+  duracao?: string | null;
+  status_pagamento?: string; // Para compatibilidade com dados antigos
+  criado_aos?: string;
+  atualizado_aos?: string;
+  id_agendamento?: number;
+  id_tipo_exame?: number;
+  Tipo_Exame?: {
+    id: number;
+    nome: string;
+    preco: number;
+  };
+  Tecnico_Laboratorio?: any; // Ou defina um tipo específico
+  Agendamento?: {
+    id: number;
+    id_paciente: number;
+    id_unidade_de_saude: string;
+    id_recepcionista: string | null;
+    id_chefe_alocado: string | null;
+    status: string;
+    criado_aos: string;
+    atualizado_aos: string;
+    Paciente: PatientType;
+    Chefe_Laboratorio: any | null;
+  };
 }
