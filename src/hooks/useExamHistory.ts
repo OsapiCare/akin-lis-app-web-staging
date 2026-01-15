@@ -3,8 +3,8 @@ export const mockExamHistory: ExamsType[] = [
   {
     id: 1,
     status: "CONCLUIDO",
-    status_financeiro: "PAGO",
-    status_reembolso: "SEM_REEMBOLSO",
+    // status_financeiro: "PAGO",
+    // status_reembolso: "SEM_REEMBOLSO",
     data_agendamento: "2024-01-15",
     hora_agendamento: "09:00",
     data_formatada: "2024-01-15T09:00:00.000Z",
@@ -54,8 +54,8 @@ export const mockExamHistory: ExamsType[] = [
   {
     id: 2,
     status: "CONCLUIDO",
-    status_financeiro: "PAGO",
-    status_reembolso: "POR_REEMBOLSAR",
+    // status_financeiro: "PAGO",
+    // status_reembolso: "POR_REEMBOLSAR",
     data_agendamento: "2024-01-14",
     hora_agendamento: "10:30",
     data_formatada: "2024-01-14T10:30:00.000Z",
@@ -105,8 +105,8 @@ export const mockExamHistory: ExamsType[] = [
   {
     id: 3,
     status: "CANCELADO",
-    status_financeiro: "CANCELADO",
-    status_reembolso: "REEMBOLSADO",
+    // status_financeiro: "CANCELADO",
+    // status_reembolso: "REEMBOLSADO",
     data_agendamento: "2024-01-13",
     hora_agendamento: "14:00",
     data_formatada: "2024-01-13T14:00:00.000Z",
