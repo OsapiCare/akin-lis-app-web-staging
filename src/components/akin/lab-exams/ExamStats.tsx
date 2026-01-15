@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 interface ExamStatsProps {
-  exams: ExamsType[];
+  exams: ExamesTypes[];
   period?: 'today' | 'week' | 'month';
 }
 

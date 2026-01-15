@@ -56,7 +56,7 @@ export type Patient = {
   contacto_telefonico?: string;
   numero_identificacao?: string;
   email?: string;
-  criado_aos: Date;
+  criado_aos?: Date;
 };
 
 // ==============================================

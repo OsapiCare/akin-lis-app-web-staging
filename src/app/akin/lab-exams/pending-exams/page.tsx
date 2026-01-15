@@ -69,19 +69,19 @@ export default function PendingExamsPage() {
   // Estados para controlar os modais
   const [isProtocolModalOpen, setIsProtocolModalOpen] = useState(false);
   const [isMaterialsModalOpen, setIsMaterialsModalOpen] = useState(false);
-  const [selectedExam, setSelectedExam] = useState<ExamsType | null>(null);
+  const [selectedExam, setSelectedExam] = useState<ExamesTypes | null>(null);
 
   const { data: pendingExams, isLoading, error, refetch } = usePendingExams();
 
   // Filtrar exames baseado nos filtros aplicados
-  const filteredExams = pendingExams?.filter((exam: ExamsType) => {
+  const filteredExams = pendingExams?.filter((exam: ExamesTypes) => {
     const matchesSearch = exam?.Tipo_Exame?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
       exam.id.toString().includes(searchTerm);
 
     const matchesStatus = statusFilter === "all" || exam.status.toLowerCase() === statusFilter;
 
     const matchesPayment = paymentFilter === "all" ||
-      exam.status_pagamento.toLowerCase() === paymentFilter;
+      exam.status_pagamento?.toLowerCase() === paymentFilter;
 
     const matchesDate = dateFilter === "all" || (() => {
       const examDate = new Date(exam.data_agendamento);
@@ -106,11 +106,11 @@ export default function PendingExamsPage() {
     return matchesSearch && matchesStatus && matchesPayment && matchesDate;
   });
 
-  const handleExamEdit = (exam: ExamsType) => {
+  const handleExamEdit = (exam: ExamesTypes) => {
     toast.info(`Editando exame: ${exam?.Tipo_Exame?.nome}`);
   };
 
-  const handleExamStart = (exam: ExamsType) => {
+  const handleExamStart = (exam: ExamesTypes) => {
     console.log(`Iniciando exame: `, exam);
     setSelectedExam(exam);
     setIsProtocolModalOpen(true);
@@ -135,7 +135,7 @@ export default function PendingExamsPage() {
     if (selectedExam) {
       setIsMaterialsModalOpen(false);
       // Usar router.push do Next.js para navegação sem reload
-      router.push(`/akin/lab-exams/ready-exam/${selectedExam.Agendamento.Paciente.id}/${selectedExam?.Tipo_Exame?.id}`);
+      router.push(`/akin/lab-exams/ready-exam/${selectedExam?.Agendamento?.Paciente.id}/${selectedExam?.Tipo_Exame?.id}`);
     }
   };
 
@@ -153,9 +153,9 @@ export default function PendingExamsPage() {
 
     return {
       total: pendingExams.length,
-      pendentes: pendingExams.filter((exam: ExamsType) => exam.status.toLowerCase() === 'pendente').length,
-      andamento: pendingExams.filter((exam: ExamsType) => exam.status.toLowerCase() === 'em_andamento').length,
-      atrasados: pendingExams.filter((exam: ExamsType) => {
+      pendentes: pendingExams.filter((exam: ExamesTypes) => exam.status.toLowerCase() === 'pendente').length,
+      andamento: pendingExams.filter((exam: ExamesTypes) => exam.status.toLowerCase() === 'em_andamento').length,
+      atrasados: pendingExams.filter((exam: ExamesTypes) => {
         const examDate = new Date(exam.data_agendamento);
         const today = new Date();
         return examDate < today && exam.status.toLowerCase() === 'pendente';
@@ -379,7 +379,7 @@ export default function PendingExamsPage() {
             <div>
               {viewMode === "card" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredExams.map((exam: ExamsType) => (
+                  {filteredExams.map((exam: ExamesTypes) => (
                     <ExamCard
                       key={exam.id}
                       exam={exam}
@@ -414,7 +414,7 @@ export default function PendingExamsPage() {
             onClose={handleMaterialsClose}
             onContinue={handleMaterialsContinue}
             exam_id={String(selectedExam?.Tipo_Exame?.id)}
-            patient_name={selectedExam.Agendamento.Paciente.nome_completo}
+            patient_name={selectedExam?.Agendamento?.Paciente.nome_completo ?? ""}
             exam_name={selectedExam?.Tipo_Exame?.nome ?? ""}
           />
         </>

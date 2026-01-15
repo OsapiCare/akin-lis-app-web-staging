@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { examRoutes } from "@/Api/Routes/Exam/index.route";
 
 // Verifique qual tipo está correto:
-// - ExamesTypes (com 's') ou ExamsType (sem 's')
+// - ExamesTypes (com 's') ou  (sem 's')
 
 export const usePendingExams = () => {
   return useQuery<ExamesTypes[]>({ // Use o tipo correto

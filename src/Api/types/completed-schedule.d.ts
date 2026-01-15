@@ -151,6 +151,7 @@ interface ScheduleType {
   estado_clinico_bloco?: StatusClinico;
   estado_financeiro_bloco?: StatusFinanceiro;
   estado_reembolso_bloco?: StatusReembolso;
+  Agendamento?:Agendamento;
 }
 
 // ==============================================

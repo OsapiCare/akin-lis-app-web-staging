@@ -95,7 +95,7 @@ export function useConsultaFilters(consultas: ConsultasType[]) {
   };
 }
 
-export function useScheduleFilters(exames: ExamsType[]) {
+export function useScheduleFilters(exames: ScheduleType[]) {
   const [filters, setFilters] = useState<ScheduleFilters>({
     searchQuery: "",
   });
