@@ -42,12 +42,18 @@ export default function New() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<PatientType | undefined>();
   const [schedules, setSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+
+  const [exameSchedules, setExameSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+  const [consultaSchedules, setConsultaSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
   const [selectedTipo, setSelectedTipo] = useState<TipoItem>(TipoItem.EXAME);
   const [resetPatient, setResetPatient] = useState(false);
   const [showReembolsoInfo, setShowReembolsoInfo] = useState(false);
   const unit_health = getAllDataInCookies().userdata.health_unit_ref || 1;
   const user_id = getAllDataInCookies().userdata.id || "";
   const [hasFetchedData, setHasFetchedData] = useState(false);
+
+  const currentSchedules = selectedTipo === TipoItem.EXAME ? exameSchedules : consultaSchedules;
+  const setCurrentSchedules = selectedTipo === TipoItem.EXAME ? setExameSchedules : setConsultaSchedules;
 
   // Query para buscar clínicos gerais
   const { data: clinicoGeralData, isLoading: isLoadingClinicos } = useQuery({
@@ -173,6 +179,20 @@ export default function New() {
     setSelectedPatient(patient);
   };
 
+  // Atualize para debug dos estados separados
+  useEffect(() => {
+    console.log("Tipo selecionado:", selectedTipo);
+    console.log("Exame schedules:", exameSchedules);
+    console.log("Consulta schedules:", consultaSchedules);
+    console.log("Current schedules:", currentSchedules);
+  }, [selectedTipo, exameSchedules, consultaSchedules, currentSchedules]);
+
+  const handleTipoChange = (newTipo: TipoItem) => {
+    // E no handleTipoChange
+    console.log("Mudando para tipo:", newTipo);
+    setSelectedTipo(newTipo);
+  };
+
   const getPatientAge = (birthDate: string) => {
     if (!birthDate) return "";
     const birth = new Date(birthDate);
@@ -219,136 +239,128 @@ export default function New() {
     return { isValid: true };
   };
 
- // Função para agendar CONSULTAS usando o novo endpoint
-// Função para agendar CONSULTAS - Versão melhorada
-const handleSubmitConsultas = async () => {
-  try {
-    const consultas = schedules.filter((schedule) => schedule.tipo === TipoItem.CONSULTA);
-
-    if (consultas.length === 0) {
-      ___showErrorToastNotification({ message: "Nenhuma consulta para agendar." });
-      return false;
-    }
-
-    // Vamos tentar diferentes abordagens em sequência
-
-    // ABORDAGEM 1: Endpoint específico para consultas
+  // Função para agendar CONSULTAS - Versão melhorada
+  const handleSubmitConsultas = async () => {
     try {
-      const payload1 = {
-        id_paciente: Number(selectedPatient!.id),
-        id_unidade_de_saude: unit_health.toString(),
-        tipo: "CONSULTA", // Adicionar tipo explícito
-        consultas: consultas.map((schedule) => ({
-          id_tipo_consulta: Number(schedule.item?.id),
-          data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : 
-                          schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : 
-                          new Date().toISOString().split("T")[0],
-          hora_agendamento: schedule.time,
-          status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
-        })),
-      };
+      const consultas = consultaSchedules;
 
-      const response1 = await _axios.post("/consultations/batch", payload1);
-      
-      if (response1.status === 201 || response1.status === 200) {
-        ___showSuccessToastNotification({
-          message: `${consultas.length} consulta(s) agendada(s) com sucesso!`,
-        });
-        return true;
+      if (consultas.length === 0 || consultas.every((c) => !c.item)) {
+        ___showErrorToastNotification({ message: "Nenhuma consulta para agendar." });
+        return false;
       }
-    } catch (error1) {
-      console.error("Abordagem 1 falhou:", error1);
-    }
 
-    // ABORDAGEM 2: Usar o endpoint tradicional mas com estrutura limpa
-    try {
-      const payload2 = {
-        id_paciente: Number(selectedPatient!.id),
-        id_unidade_de_saude: unit_health.toString(),
-        id_recepcionista: user_id,
-        tipo_agendamento: "CONSULTA", 
-        status: "ACTIVO",
-        status_pagamento: "NAO_PAGO",
-        status_reembolso: "SEM_REEMBOLSO",
-        itens_consulta: consultas.map((schedule) => ({
-          id_tipo_consulta: Number(schedule.item?.id),
-          data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : 
-                          schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : 
-                          new Date().toISOString().split("T")[0],
-          hora_agendamento: schedule.time,
-          status: "PENDENTE",
-          status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
-          valor_total: schedule.item?.preco || 0,
-        })),
-      };
+      // Vamos tentar diferentes abordagens em sequência
 
-      const response2 = await _axios.post("/schedulings/consultations", payload2);
-      
-      if (response2.status === 201 || response2.status === 200) {
-        ___showSuccessToastNotification({
-          message: "Consultas agendadas com sucesso!",
-        });
-        return true;
-      }
-    } catch (error2) {
-      console.error("Abordagem 2 falhou:", error2);
-    }
-
-    // ABORDAGEM 3: Último recurso - criar cada consulta individualmente
-    try {
-      let successCount = 0;
-      
-      for (const consulta of consultas) {
-        const payload3 = {
+      // ABORDAGEM 1: Endpoint específico para consultas
+      try {
+        const payload1 = {
           id_paciente: Number(selectedPatient!.id),
           id_unidade_de_saude: unit_health.toString(),
-          id_tipo_consulta: Number(consulta.item?.id),
-          data_agendamento: consulta.date instanceof Date ? consulta.date.toISOString().split("T")[0] : 
-                          consulta.date ? new Date(consulta.date).toISOString().split("T")[0] : 
-                          new Date().toISOString().split("T")[0],
-          hora_agendamento: consulta.time,
-          status: "PENDENTE",
-          status_pagamento: consulta.item && consulta.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
-          valor_total: consulta.item?.preco || 0,
+          tipo: "CONSULTA", // Adicionar tipo explícito
+          consultas: consultas.map((schedule) => ({
+            id_tipo_consulta: Number(schedule.item?.id),
+            data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            hora_agendamento: schedule.time,
+            status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
+          })),
         };
 
-        const response3 = await _axios.post("/consultations", payload3);
-        
-        if (response3.status === 201 || response3.status === 200) {
-          successCount++;
+        const response1 = await _axios.post("/consultations/batch", payload1);
+
+        if (response1.status === 201 || response1.status === 200) {
+          ___showSuccessToastNotification({
+            message: `${consultas.length} consulta(s) agendada(s) com sucesso!`,
+          });
+          return true;
         }
+      } catch (error1) {
+        console.error("Abordagem 1 falhou:", error1);
       }
 
-      if (successCount === consultas.length) {
-        ___showSuccessToastNotification({
-          message: `${successCount} consulta(s) agendada(s) individualmente!`,
-        });
-        return true;
+      // ABORDAGEM 2: Usar o endpoint tradicional mas com estrutura limpa
+      try {
+        const payload2 = {
+          id_paciente: Number(selectedPatient!.id),
+          id_unidade_de_saude: unit_health.toString(),
+          id_recepcionista: user_id,
+          tipo_agendamento: "CONSULTA",
+          status: "ACTIVO",
+          status_pagamento: "NAO_PAGO",
+          status_reembolso: "SEM_REEMBOLSO",
+          itens_consulta: consultas.map((schedule) => ({
+            id_tipo_consulta: Number(schedule.item?.id),
+            data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            hora_agendamento: schedule.time,
+            status: "PENDENTE",
+            status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
+            valor_total: schedule.item?.preco || 0,
+          })),
+        };
+
+        const response2 = await _axios.post("/schedulings/consultations", payload2);
+
+        if (response2.status === 201 || response2.status === 200) {
+          ___showSuccessToastNotification({
+            message: "Consultas agendadas com sucesso!",
+          });
+          return true;
+        }
+      } catch (error2) {
+        console.error("Abordagem 2 falhou:", error2);
       }
-    } catch (error3) {
-      console.error("Abordagem 3 falhou:", error3);
+
+      // ABORDAGEM 3: Último recurso - criar cada consulta individualmente
+      try {
+        let successCount = 0;
+
+        for (const consulta of consultas) {
+          const payload3 = {
+            id_paciente: Number(selectedPatient!.id),
+            id_unidade_de_saude: unit_health.toString(),
+            id_tipo_consulta: Number(consulta.item?.id),
+            data_agendamento: consulta.date instanceof Date ? consulta.date.toISOString().split("T")[0] : consulta.date ? new Date(consulta.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            hora_agendamento: consulta.time,
+            status: "PENDENTE",
+            status_pagamento: consulta.item && consulta.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
+            valor_total: consulta.item?.preco || 0,
+          };
+
+          const response3 = await _axios.post("/consultations", payload3);
+
+          if (response3.status === 201 || response3.status === 200) {
+            successCount++;
+          }
+        }
+
+        if (successCount === consultas.length) {
+          ___showSuccessToastNotification({
+            message: `${successCount} consulta(s) agendada(s) individualmente!`,
+          });
+          return true;
+        }
+      } catch (error3) {
+        console.error("Abordagem 3 falhou:", error3);
+      }
+
+      // Se todas as abordagens falharem
+      ___showErrorToastNotification({
+        message: "Não foi possível agendar as consultas. Verifique os endpoints disponíveis.",
+      });
+      return false;
+    } catch (error: any) {
+      console.error("Erro geral ao agendar consultas:", error);
+      ___showErrorToastNotification({
+        message: `Erro: ${error?.response?.data?.message || error.message || "Contate o suporte"}`,
+      });
+      return false;
     }
-
-    // Se todas as abordagens falharem
-    ___showErrorToastNotification({
-      message: "Não foi possível agendar as consultas. Verifique os endpoints disponíveis.",
-    });
-    return false;
-
-  } catch (error: any) {
-    console.error("Erro geral ao agendar consultas:", error);
-    ___showErrorToastNotification({
-      message: `Erro: ${error?.response?.data?.message || error.message || "Contate o suporte"}`,
-    });
-    return false;
-  }
-};
+  };
   // Função para agendar EXAMES usando o endpoint tradicional
   const handleSubmitExames = async () => {
     try {
-      const exames = schedules.filter((schedule) => schedule.tipo === TipoItem.EXAME);
+      const exames = exameSchedules;
 
-      if (exames.length === 0) {
+      if (exames.length === 0 || exames.every((e) => !e.item)) {
         ___showErrorToastNotification({ message: "Nenhum exame para agendar." });
         return false;
       }
@@ -396,26 +408,12 @@ const handleSubmitConsultas = async () => {
 
     setIsSaving(true);
     try {
-      const consultas = schedules.filter((schedule) => schedule.tipo === TipoItem.CONSULTA);
-      const exames = schedules.filter((schedule) => schedule.tipo === TipoItem.EXAME);
-
       let success = false;
 
       // Verificar se está tentando agendar ambos os tipos
-      if (consultas.length > 0 && exames.length > 0) {
-        ___showErrorToastNotification({
-          message: "Não é possível agendar exames e consultas no mesmo processo. Selecione apenas um tipo.",
-        });
-        setIsSaving(false);
-        return;
-      }
-
-      // Agendar CONSULTAS usando o novo endpoint
-      if (consultas.length > 0) {
+      if (selectedTipo === TipoItem.CONSULTA) {
         success = (await handleSubmitConsultas()) ?? true;
-      }
-      // Agendar EXAMES usando o endpoint tradicional
-      else if (exames.length > 0) {
+      } else if (selectedTipo === TipoItem.EXAME) {
         success = await handleSubmitExames();
       } else {
         ___showErrorToastNotification({ message: "Nenhum item selecionado para agendamento." });
@@ -424,11 +422,13 @@ const handleSubmitConsultas = async () => {
       }
 
       if (success) {
-        // Resetar todos os campos
-        setSchedules([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+        if (selectedTipo === TipoItem.EXAME) {
+          setExameSchedules([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+        } else {
+          setConsultaSchedules([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
+        }
         setSelectedPatient(undefined);
         setSelectedPatientId("");
-        setSelectedTipo(TipoItem.EXAME);
         resetInputs();
         setResetPatient(true);
       }
@@ -450,7 +450,6 @@ const handleSubmitConsultas = async () => {
 
         const processoResponse = await _axios.post("/schedulings", processoPayload);
         const idProcesso = processoResponse.data.id;
-
 
         // **ETAPA 2: Adicionar os itens**
         const consultas = schedules.filter((schedule) => schedule.tipo === TipoItem.CONSULTA);
@@ -540,26 +539,10 @@ const handleSubmitConsultas = async () => {
             <div className="flex flex-col gap-3">
               <label className="font-bold text-lg">Tipo de Agendamento</label>
               <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant={selectedTipo === TipoItem.EXAME ? "default" : "outline"}
-                  onClick={() => {
-                    setSelectedTipo(TipoItem.EXAME);
-                    setSchedules([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
-                  }}
-                  className={`flex-1 ${selectedTipo === TipoItem.EXAME ? "bg-akin-turquoise hover:bg-akin-turquoise/90" : ""}`}
-                >
+                <Button type="button" variant={selectedTipo === TipoItem.EXAME ? "default" : "outline"} onClick={() => handleTipoChange(TipoItem.EXAME)} className={`flex-1 ${selectedTipo === TipoItem.EXAME ? "bg-akin-turquoise hover:bg-akin-turquoise/90" : ""}`}>
                   Exames
                 </Button>
-                <Button
-                  type="button"
-                  variant={selectedTipo === TipoItem.CONSULTA ? "default" : "outline"}
-                  onClick={() => {
-                    setSelectedTipo(TipoItem.CONSULTA);
-                    setSchedules([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
-                  }}
-                  className={`flex-1 ${selectedTipo === TipoItem.CONSULTA ? "bg-akin-turquoise hover:bg-akin-turquoise/90" : ""}`}
-                >
+                <Button type="button" variant={selectedTipo === TipoItem.CONSULTA ? "default" : "outline"} onClick={() => handleTipoChange(TipoItem.CONSULTA)} className={`flex-1 ${selectedTipo === TipoItem.CONSULTA ? "bg-akin-turquoise hover:bg-akin-turquoise/90" : ""}`}>
                   Consultas
                 </Button>
               </div>
@@ -612,7 +595,7 @@ const handleSubmitConsultas = async () => {
                 <p className="font-medium text-yellow-800">Nenhum {selectedTipo === TipoItem.EXAME ? "exame" : "consulta"} disponível</p>
               </div>
             ) : (
-              <ScheduleDetails isLoading={isLoading} items={filteredItems} schedules={schedules} onChange={setSchedules} selectedTipo={selectedTipo} />
+              <ScheduleDetails isLoading={isLoading} items={filteredItems} schedules={currentSchedules} onChange={setCurrentSchedules} selectedTipo={selectedTipo} />
             )}
           </div>
         </div>
