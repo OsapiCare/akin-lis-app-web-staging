@@ -11,11 +11,7 @@ import { resetInputs } from "./utils/reset-inputs-func";
 import { getAllDataInCookies } from "@/utils/get-data-in-cookies";
 import { IItemTipoProps, IPaciente } from "@/module/types";
 import { patientRoutes } from "@/Api/Routes/patients";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { useQuery } from "@tanstack/react-query";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { Loader, Loader2 } from "lucide-react";
 
 // Enum para tipos de itens
 enum TipoItem {
@@ -23,21 +19,11 @@ enum TipoItem {
   CONSULTA = "CONSULTA",
 }
 
-// Interface para Clínico Geral
-interface IClinicoGeral {
-  id: string;
-  nome: string;
-  especialidade?: string;
-  registro_profissional?: string;
-  papel?: string;
-}
-
 export default function New() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [availableItems, setAvailableItems] = useState<IItemTipoProps[]>([]);
   const [availablePatients, setAvailablePatients] = useState<PatientType[]>([]);
-  const [availableClinicos, setAvailableClinicos] = useState<IClinicoGeral[]>([]);
   const [patientAutoComplete, setPatientAutoComplete] = useState<{ value: string; id: string }[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<PatientType | undefined>();
@@ -46,7 +32,6 @@ export default function New() {
   const [consultaSchedules, setConsultaSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
   const [selectedTipo, setSelectedTipo] = useState<TipoItem>(TipoItem.EXAME);
   const [resetPatient, setResetPatient] = useState(false);
-  const [showReembolsoInfo, setShowReembolsoInfo] = useState(false);
   const unit_health = getAllDataInCookies().userdata.health_unit_ref || 1;
   const user_id = getAllDataInCookies().userdata.id || "";
   const [hasFetchedData, setHasFetchedData] = useState(false);
@@ -54,44 +39,14 @@ export default function New() {
   const currentSchedules = selectedTipo === TipoItem.EXAME ? exameSchedules : consultaSchedules;
   const setCurrentSchedules = selectedTipo === TipoItem.EXAME ? setExameSchedules : setConsultaSchedules;
 
-  // Query para buscar clínicos gerais
-  const { data: clinicoGeralData, isLoading: isLoadingClinicos } = useQuery({
-    queryKey: ["clinico-geral"],
-    queryFn: async () => {
-      try {
-        const response = await _axios.get("/general-practitioners");
-        return response.data;
-      } catch (error) {
-        console.error("Erro ao buscar clínicos:", error);
-        return [];
-      }
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-  const createEmptySchedule = (tipo: TipoItem) : ScheduleItem => ({
-    item:null,
+  const createEmptySchedule = (tipo: TipoItem): ScheduleItem => ({
+    item: null,
     tipo,
-    date:null,
-    time:"",
+    date: null,
+    time: "",
   });
 
   const normalizeDate = (date: any) => (date instanceof Date ? date.toISOString().split("T")[0] : date ? new Date(date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
-  // Efeito para atualizar a lista de clínicos quando os dados são carregados
-  useEffect(() => {
-    if (clinicoGeralData && Array.isArray(clinicoGeralData)) {
-      const clinicosFormatados: IClinicoGeral[] = clinicoGeralData.map((clinico: any) => ({
-        id: clinico.id?.toString() || clinico._id?.toString() || Math.random().toString(),
-        nome: clinico.nome || clinico.name || "Nome não disponível",
-        especialidade: clinico.especialidade || "Clínico Geral",
-        registro_profissional: clinico.registro_profissional || "Registro a definir",
-        papel: clinico.papel || "CLINICO",
-      }));
-
-      if (clinicosFormatados.length > 0) {
-        setAvailableClinicos(clinicosFormatados);
-      }
-    }
-  }, [clinicoGeralData]);
 
   useEffect(() => {
     if (selectedPatientId) {
@@ -194,7 +149,6 @@ export default function New() {
   }, [selectedTipo, exameSchedules, consultaSchedules, currentSchedules]);
 
   const handleTipoChange = (newTipo: TipoItem) => {
-    // E no handleTipoChange
     console.log("Mudando para tipo:", newTipo);
     setSelectedTipo(newTipo);
   };
@@ -295,7 +249,7 @@ export default function New() {
           status_reembolso: "SEM_REEMBOLSO",
           itens_consulta: consultas.map((schedule) => ({
             id_tipo_consulta: Number(schedule.item?.id),
-            data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            data_agendamento: normalizeDate(schedule.date),
             hora_agendamento: schedule.time,
             status: "PENDENTE",
             status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
@@ -324,7 +278,7 @@ export default function New() {
             id_paciente: Number(selectedPatient!.id),
             id_unidade_de_saude: unit_health.toString(),
             id_tipo_consulta: Number(consulta.item?.id),
-            data_agendamento: consulta.date instanceof Date ? consulta.date.toISOString().split("T")[0] : consulta.date ? new Date(consulta.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            data_agendamento: normalizeDate(consulta.date),
             hora_agendamento: consulta.time,
             status: "PENDENTE",
             status_pagamento: consulta.item && consulta.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
@@ -361,6 +315,7 @@ export default function New() {
       return false;
     }
   };
+
   // Função para agendar EXAMES usando o endpoint tradicional
   const handleSubmitExames = async () => {
     try {
@@ -380,7 +335,7 @@ export default function New() {
         status_reembolso: "SEM_REEMBOLSO",
         exames_paciente: exames.map((schedule) => ({
           id_tipo_exame: Number(schedule.item?.id),
-          data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+          data_agendamento: normalizeDate(schedule.date),
           hora_agendamento: schedule.time,
           status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
           status_reembolso: "SEM_REEMBOLSO",
@@ -429,9 +384,9 @@ export default function New() {
 
       if (success) {
         if (selectedTipo === TipoItem.EXAME) {
-          setExameSchedules([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+          setExameSchedules([createEmptySchedule(TipoItem.EXAME)]);
         } else {
-          setConsultaSchedules([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
+          setConsultaSchedules([createEmptySchedule(TipoItem.CONSULTA)]);
         }
         setSelectedPatient(undefined);
         setSelectedPatientId("");
@@ -466,7 +421,7 @@ export default function New() {
             const consultaPayload = {
               id_agendamento: idProcesso,
               id_tipo_consulta: Number(consulta.item?.id),
-              data_agendamento: consulta.date instanceof Date ? consulta.date.toISOString().split("T")[0] : consulta.date ? new Date(consulta.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+              data_agendamento: normalizeDate(consulta.date),
               hora_agendamento: consulta.time,
               status_pagamento: consulta.item && consulta.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
               status: "PENDENTE",
@@ -486,7 +441,7 @@ export default function New() {
             const examePayload = {
               id_agendamento: idProcesso,
               id_tipo_exame: Number(exame.item?.id),
-              data_agendamento: exame.date instanceof Date ? exame.date.toISOString().split("T")[0] : exame.date ? new Date(exame.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+              data_agendamento: normalizeDate(exame.date),
               hora_agendamento: exame.time,
               status_pagamento: exame.item && exame.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
               status: "PENDENTE",
@@ -555,46 +510,10 @@ export default function New() {
             </div>
           </div>
 
-          {selectedTipo === TipoItem.CONSULTA && availableClinicos.length > 0 && (
-            <div className="p-4 bg-gray-100 rounded-lg border">
-              <div className="flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <Label className="font-bold text-lg">Clínico Geral</Label>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex flex-col gap-2">
-                    {isLoadingClinicos ? (
-                      <div className="p-3 bg-gray-50 border border-gray-200 rounded-md">
-                        <p className="text-gray-500">Carregando...</p>
-                      </div>
-                    ) : (
-                      <Select>
-                        <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Selecione um clínico" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {availableClinicos.map((clinico) => (
-                            <SelectItem key={clinico.id} value={clinico.id}>
-                              <div className="flex flex-col">
-                                <span className="font-medium">{clinico.nome}</span>
-                                <span className="text-xs text-gray-500">{clinico.especialidade}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="p-4 bg-gray-100 rounded-lg border flex flex-col">
             {isLoading ? (
-              <div className="p-4 text-center">
-                <p>Carregando...</p>
+              <div className="p-2 text-center">
+                <Loader2 className="flex size-11 m-auto animate-spin text-akin-turquoise" />
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="p-4 text-center border border-yellow-200 bg-yellow-50 rounded-md">
