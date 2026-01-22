@@ -327,12 +327,12 @@ const ExamesBlock = ({ exames, pacienteId, expanded, onToggle }: { exames: any[]
                               exame.status === "PENDENTE"
                                 ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                                 : exame.status === "EM_ANDAMENTO"
-                                ? "bg-cyan-100 text-cyan-800 hover:bg-cyan-100"
-                                : exame.status === "POR_REAGENDAR"
-                                ? "bg-teal-100 text-teal-800 hover:bg-teal-800"
-                                : exame.status === "CONCLUIDO"
-                                ? "bg-green-100 text-green-800 hover:bg-green-100"
-                                : "bg-red-100 text-red-800 hover:bg-red-100"
+                                  ? "bg-cyan-100 text-cyan-800 hover:bg-cyan-100"
+                                  : exame.status === "POR_REAGENDAR"
+                                    ? "bg-teal-100 text-teal-800 hover:bg-teal-800"
+                                    : exame.status === "CONCLUIDO"
+                                      ? "bg-green-100 text-green-800 hover:bg-green-100"
+                                      : "bg-red-100 text-red-800 hover:bg-red-100"
                             }`}
                           >
                             {exame.status}
@@ -564,6 +564,8 @@ export default function CompletedSchedulesPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expandedExames, setExpandedExames] = useState<Set<number>>(new Set());
   const [expandedConsultas, setExpandedConsultas] = useState<Set<number>>(new Set());
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
   const queryClient = useQueryClient();
 
   // Buscar exames
@@ -704,10 +706,12 @@ export default function CompletedSchedulesPage() {
 
   const handleViewDetails = (paciente: PacienteAgendamento) => {
     setSelectedSchedule(paciente);
+    setIsDetailsModalOpen(true);
   };
 
   const handleCloseDetailsModal = () => {
     setSelectedSchedule(null);
+    setIsDetailsModalOpen(false);
   };
 
   const handleViewReport = (schedule: any) => {
@@ -731,7 +735,7 @@ export default function CompletedSchedulesPage() {
   };
 
   // Componente de Cabeçalho do Paciente
-  const PacienteHeader = ({ paciente }: { paciente: PacienteAgendamento }) => {
+  const PacienteHeader = ({ paciente, onViewDetails }: { paciente: PacienteAgendamento; onViewDetails?: () => void }) => {
     const hasExames = paciente.exames?.length > 0;
     const hasConsultas = paciente.consultas?.length > 0;
     const totalItens = paciente.exames?.length + paciente.consultas?.length;
@@ -740,9 +744,7 @@ export default function CompletedSchedulesPage() {
       <div className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-200 p-3 sm:p-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-start sm:items-center gap-3 sm:gap-4">
-            <div className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">
-              {getPatientInitials(paciente.paciente_nome)}
-            </div>
+            <div className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg">{getPatientInitials(paciente.paciente_nome)}</div>
 
             <div className="min-w-0 flex-1">
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
@@ -765,6 +767,10 @@ export default function CompletedSchedulesPage() {
                     {totalItens} Itens
                   </Badge>
                 </div>
+                <Button variant="outline" size="sm" onClick={onViewDetails} className="border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 hover:border-blue-300">
+                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                  <span className="text-xs sm:text-sm">Ver Detalhes</span>
+                </Button>
               </div>
 
               <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
@@ -823,12 +829,12 @@ export default function CompletedSchedulesPage() {
   };
 
   // Componente Principal do Card do Paciente
-  const PacienteCard = ({ paciente }: { paciente: PacienteAgendamento }) => {
+  const PacienteCard = ({ paciente, onViewDetails }: { paciente: PacienteAgendamento; onViewDetails?: ()=> void }) => {
     return (
       <div className="space-y-3 sm:space-y-4">
         <Card className="w-full overflow-hidden border border-gray-300 shadow-lg">
           {/* Cabeçalho do Paciente */}
-          <PacienteHeader paciente={paciente} />
+          <PacienteHeader paciente={paciente} onViewDetails={onViewDetails} />
 
           <CardContent className="p-3 sm:p-4">
             {/* Bloco de Exames */}
@@ -951,7 +957,7 @@ export default function CompletedSchedulesPage() {
             </div>
           </div>
           <div className="flex items-end">
-            <Button variant="ghost" onClick={()=> clearFilters()} className="border-gray-200">
+            <Button variant="ghost" onClick={() => clearFilters()} className="border-gray-200">
               <X className="w-4 h-4 mr-2" />
               Limpar Filtros
             </Button>
@@ -1098,9 +1104,7 @@ export default function CompletedSchedulesPage() {
                 <Search className="w-12 h-12 text-gray-400" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-3">Nenhum agendamento encontrado</h3>
-              <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                {pacientesAgendamentos.length === 0 ? "Não há agendamentos pendentes disponíveis." : "Tente ajustar os filtros ou a busca para encontrar o que procura."}
-              </p>
+              <p className="text-gray-600 mb-6 max-w-md mx-auto">{pacientesAgendamentos.length === 0 ? "Não há agendamentos pendentes disponíveis." : "Tente ajustar os filtros ou a busca para encontrar o que procura."}</p>
               {filters.searchQuery && (
                 <Button variant="outline" onClick={() => handleSearch("")} className="border-gray-200 hover:bg-gray-50">
                   Limpar busca
@@ -1111,7 +1115,11 @@ export default function CompletedSchedulesPage() {
         ) : viewMode === "grid" ? (
           <div className="space-y-6">
             {filteredSchedules.map((paciente: any) => (
-              <PacienteCard key={paciente.id_paciente} paciente={paciente} />
+              <PacienteCard 
+              key={paciente.id_paciente} 
+              paciente={paciente}
+              onViewDetails={()=> handleViewDetails(paciente)}
+              />
             ))}
           </div>
         ) : (
@@ -1195,11 +1203,7 @@ export default function CompletedSchedulesPage() {
                             </div>
                           </td>
                           <td className="p-4">
-                            <Badge
-                              className={`text-xs px-3 py-1 ${paciente.status === "PENDENTE" ? "bg-yellow-50 text-yellow-700" : paciente.status === "APROVADO" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-700"}`}
-                            >
-                              {paciente.status}
-                            </Badge>
+                            <Badge className={`text-xs px-3 py-1 ${paciente.status === "PENDENTE" ? "bg-yellow-50 text-yellow-700" : paciente.status === "APROVADO" ? "bg-green-50 text-green-700" : "bg-gray-50 text-gray-700"}`}>{paciente.status}</Badge>
                           </td>
                           <td className="p-4">
                             <DropdownMenu>
@@ -1238,15 +1242,27 @@ export default function CompletedSchedulesPage() {
         {/* Modal de Detalhes */}
         {selectedSchedule && (
           <CompletedScheduleDetailsModal
-            isOpen={!!selectedSchedule}
+            isOpen={isDetailsModalOpen}
             onClose={handleCloseDetailsModal}
             schedule={selectedSchedule}
             content={
-              <div className="space-y-6">
-                <PacienteHeader paciente={selectedSchedule} />
-                <ExamesBlock exames={selectedSchedule.exames} pacienteId={selectedSchedule.id_paciente} expanded={expandedExames.has(selectedSchedule.id_paciente)} onToggle={() => toggleExamesExpansion(selectedSchedule.id_paciente)} />
-                <ConsultasBlock consultas={selectedSchedule.consultas} pacienteId={selectedSchedule.id_paciente} expanded={expandedConsultas.has(selectedSchedule.id_paciente)} onToggle={() => toggleConsultasExpansion(selectedSchedule.id_paciente)} />
+              selectedSchedule && (
+                <div className="space-y-6">
+                  <PacienteHeader paciente={selectedSchedule} />
+                <ExamesBlock 
+                exames={selectedSchedule.exames} 
+                pacienteId={selectedSchedule.id_paciente} 
+                expanded={expandedExames.has(selectedSchedule.id_paciente)}
+                onToggle={() => toggleExamesExpansion(selectedSchedule.id_paciente)} 
+                />
+                <ConsultasBlock 
+                consultas={selectedSchedule.consultas} 
+                pacienteId={selectedSchedule.id_paciente} 
+                expanded={expandedConsultas.has(selectedSchedule.id_paciente)} 
+                onToggle={() => toggleConsultasExpansion(selectedSchedule.id_paciente)} 
+                />
               </div>
+              )
             }
           />
         )}
