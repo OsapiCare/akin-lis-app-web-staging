@@ -41,7 +41,6 @@ export default function New() {
   const [patientAutoComplete, setPatientAutoComplete] = useState<{ value: string; id: string }[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<PatientType | undefined>();
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
 
   const [exameSchedules, setExameSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
   const [consultaSchedules, setConsultaSchedules] = useState<ScheduleItem[]>([{ item: null, tipo: TipoItem.CONSULTA, date: null, time: "" }]);
@@ -69,7 +68,14 @@ export default function New() {
     },
     staleTime: 5 * 60 * 1000,
   });
+  const createEmptySchedule = (tipo: TipoItem) : ScheduleItem => ({
+    item:null,
+    tipo,
+    date:null,
+    time:"",
+  });
 
+  const normalizeDate = (date: any) => (date instanceof Date ? date.toISOString().split("T")[0] : date ? new Date(date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0]);
   // Efeito para atualizar a lista de clínicos quando os dados são carregados
   useEffect(() => {
     if (clinicoGeralData && Array.isArray(clinicoGeralData)) {
@@ -207,7 +213,7 @@ export default function New() {
   };
 
   const calculateTotalValue = () => {
-    return schedules.reduce((sum, schedule) => {
+    return currentSchedules.reduce((sum, schedule) => {
       return sum + (schedule.item?.preco || 0);
     }, 0);
   };
@@ -220,7 +226,7 @@ export default function New() {
       errors.push("Nenhum paciente selecionado.");
     }
 
-    schedules.forEach((schedule, index) => {
+    currentSchedules.forEach((schedule, index) => {
       if (!schedule.item) errors.push(`Agendamento ${index + 1}: ${schedule.tipo === TipoItem.EXAME ? "Exame" : "Consulta"} não selecionado.`);
       if (!schedule.date) errors.push(`Agendamento ${index + 1}: Data não preenchida.`);
       if (!schedule.time) errors.push(`Agendamento ${index + 1}: Hora não preenchida.`);
@@ -259,7 +265,7 @@ export default function New() {
           tipo: "CONSULTA", // Adicionar tipo explícito
           consultas: consultas.map((schedule) => ({
             id_tipo_consulta: Number(schedule.item?.id),
-            data_agendamento: schedule.date instanceof Date ? schedule.date.toISOString().split("T")[0] : schedule.date ? new Date(schedule.date).toISOString().split("T")[0] : new Date().toISOString().split("T")[0],
+            data_agendamento: normalizeDate(schedule.date),
             hora_agendamento: schedule.time,
             status_pagamento: schedule.item && schedule.item.preco > 0 ? "NAO_PAGO" : "ISENTO",
           })),
@@ -452,8 +458,8 @@ export default function New() {
         const idProcesso = processoResponse.data.id;
 
         // **ETAPA 2: Adicionar os itens**
-        const consultas = schedules.filter((schedule) => schedule.tipo === TipoItem.CONSULTA);
-        const exames = schedules.filter((schedule) => schedule.tipo === TipoItem.EXAME);
+        const consultas = currentSchedules.filter((schedule) => schedule.tipo === TipoItem.CONSULTA);
+        const exames = currentSchedules.filter((schedule) => schedule.tipo === TipoItem.EXAME);
 
         if (consultas.length > 0) {
           for (const consulta of consultas) {
@@ -496,7 +502,7 @@ export default function New() {
         }
 
         // Reset
-        setSchedules([{ item: null, tipo: TipoItem.EXAME, date: null, time: "" }]);
+        setCurrentSchedules([createEmptySchedule(selectedTipo)]);
         setSelectedPatient(undefined);
         setSelectedPatientId("");
         setSelectedTipo(TipoItem.EXAME);
@@ -595,7 +601,7 @@ export default function New() {
                 <p className="font-medium text-yellow-800">Nenhum {selectedTipo === TipoItem.EXAME ? "exame" : "consulta"} disponível</p>
               </div>
             ) : (
-              <ScheduleDetails isLoading={isLoading} items={filteredItems} schedules={currentSchedules} onChange={setCurrentSchedules} selectedTipo={selectedTipo} />
+              <ScheduleDetails key={selectedTipo} isLoading={isLoading} items={filteredItems} schedules={currentSchedules} onChange={setCurrentSchedules} selectedTipo={selectedTipo} />
             )}
           </div>
         </div>
