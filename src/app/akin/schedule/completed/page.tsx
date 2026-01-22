@@ -829,7 +829,7 @@ export default function CompletedSchedulesPage() {
   };
 
   // Componente Principal do Card do Paciente
-  const PacienteCard = ({ paciente, onViewDetails }: { paciente: PacienteAgendamento; onViewDetails?: ()=> void }) => {
+  const PacienteCard = ({ paciente, onViewDetails }: { paciente: PacienteAgendamento; onViewDetails?: () => void }) => {
     return (
       <div className="space-y-3 sm:space-y-4">
         <Card className="w-full overflow-hidden border border-gray-300 shadow-lg">
@@ -1115,11 +1115,7 @@ export default function CompletedSchedulesPage() {
         ) : viewMode === "grid" ? (
           <div className="space-y-6">
             {filteredSchedules.map((paciente: any) => (
-              <PacienteCard 
-              key={paciente.id_paciente} 
-              paciente={paciente}
-              onViewDetails={()=> handleViewDetails(paciente)}
-              />
+              <PacienteCard key={paciente.id_paciente} paciente={paciente} onViewDetails={() => handleViewDetails(paciente)} />
             ))}
           </div>
         ) : (
@@ -1249,19 +1245,9 @@ export default function CompletedSchedulesPage() {
               selectedSchedule && (
                 <div className="space-y-6">
                   <PacienteHeader paciente={selectedSchedule} />
-                <ExamesBlock 
-                exames={selectedSchedule.exames} 
-                pacienteId={selectedSchedule.id_paciente} 
-                expanded={expandedExames.has(selectedSchedule.id_paciente)}
-                onToggle={() => toggleExamesExpansion(selectedSchedule.id_paciente)} 
-                />
-                <ConsultasBlock 
-                consultas={selectedSchedule.consultas} 
-                pacienteId={selectedSchedule.id_paciente} 
-                expanded={expandedConsultas.has(selectedSchedule.id_paciente)} 
-                onToggle={() => toggleConsultasExpansion(selectedSchedule.id_paciente)} 
-                />
-              </div>
+                  <ExamesBlock exames={selectedSchedule.exames} pacienteId={selectedSchedule.id_paciente} expanded={expandedExames.has(selectedSchedule.id_paciente)} onToggle={() => toggleExamesExpansion(selectedSchedule.id_paciente)} />
+                  <ConsultasBlock consultas={selectedSchedule.consultas} pacienteId={selectedSchedule.id_paciente} expanded={expandedConsultas.has(selectedSchedule.id_paciente)} onToggle={() => toggleConsultasExpansion(selectedSchedule.id_paciente)} />
+                </div>
               )
             }
           />
