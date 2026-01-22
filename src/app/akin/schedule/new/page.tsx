@@ -140,16 +140,7 @@ export default function New() {
     setSelectedPatient(patient);
   };
 
-  // Atualize para debug dos estados separados
-  useEffect(() => {
-    console.log("Tipo selecionado:", selectedTipo);
-    console.log("Exame schedules:", exameSchedules);
-    console.log("Consulta schedules:", consultaSchedules);
-    console.log("Current schedules:", currentSchedules);
-  }, [selectedTipo, exameSchedules, consultaSchedules, currentSchedules]);
-
   const handleTipoChange = (newTipo: TipoItem) => {
-    console.log("Mudando para tipo:", newTipo);
     setSelectedTipo(newTipo);
   };
 

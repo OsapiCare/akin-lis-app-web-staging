@@ -61,6 +61,7 @@ interface CompletedScheduleDetailsModalProps {
   schedule: CompletedScheduleType | null;
   isOpen: boolean;
   onClose: () => void;
+  content?:JSX.Element;
 }
 
 interface EditableExam {
@@ -341,7 +342,7 @@ const PatientInfoItem = ({ label, value, icon }: { label: string; value: string;
 
 // ======================== COMPONENTE PRINCIPAL ========================
 
-export function CompletedScheduleDetailsModal({ schedule, isOpen, onClose }: CompletedScheduleDetailsModalProps) {
+export function CompletedScheduleDetailsModal({content, schedule, isOpen, onClose }: CompletedScheduleDetailsModalProps) {
   const [editingExam, setEditingExam] = useState<number | null>(null);
   const [editingConsulta, setEditingConsulta] = useState<number | null>(null);
   const [editedExam, setEditedExam] = useState<EditableExam | null>(null);

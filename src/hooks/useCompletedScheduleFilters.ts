@@ -100,8 +100,7 @@ export function useCompletedScheduleFilters(schedules: CompletedScheduleType[]) 
     setFilters(prev => ({ ...prev, ...newFilters }));
   };
 
-  const clearFilters = (key?: keyof CompletedScheduleFilters) => {
-    if (!key) {
+  const clearFilters = ():void => {
       setFilters({
         searchQuery: "",
         examStatus: "TODOS",
@@ -110,27 +109,6 @@ export function useCompletedScheduleFilters(schedules: CompletedScheduleType[]) 
         dateFrom: null,
         dateTo: null,
       });
-      return;
-    }
-
-    setFilters(prev => {
-      const updated = { ...prev };
-      switch (key) {
-        case "examStatus":
-        case "paymentStatus":
-        case "technicianFilter":
-          updated[key] = "TODOS";
-          break;
-        case "dateFrom":
-        case "dateTo":
-          updated[key] = null;
-          break;
-        case "searchQuery":
-          updated[key] = "";
-          break;
-      }
-      return updated;
-    });
   };
 
   return {
